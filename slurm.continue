@@ -19,9 +19,9 @@ TPRFILE=$STYLE.tpr
 
 cat << EOF
     "$(date)" \
-    "Continuing job"\
+    "Continuing job" \
     "=============================================="
->> EOF
+EOF
 
 srun gmx_mpi mdrun -v -s $TPRFILE \
                    -o $STYLE \
