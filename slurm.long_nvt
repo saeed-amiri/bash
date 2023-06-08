@@ -1,0 +1,79 @@
+#!/bin/bash 
+#SBATCH --job-name 50A90@V
+#SBATCH --nodes=3
+#SBATCH --ntasks=144
+#SBATCH --time 12:00:00
+#SBATCH -A hbp00076
+
+THREADS=2
+export SLURM_CPU_BIND=none
+export OMP_NUM_THREADS=$THREADS
+export GMX_MAXCONSTRWARN=-1
+
+module load intel
+module load impi
+module load gromacs/2021.2-plumed
+
+# Write to both file and stdout
+ECHOMESG() {
+    for arg in "$@"; do
+        echo "$arg" >> "$REPORT"
+        echo "$arg"
+    done
+}
+
+# Kill the nohub job when needed
+KILLJOB(){
+    REPORT=./RESUBMIT_REPORT  # Report file
+    file_path="./nohup.PID"  # Nohup file, to kill in total
+    last_line=$(tail -n 1 "$file_path")
+    if [[ $last_line =~ ^[0-9]+$ ]]; then
+        pid=$(awk '{print $1}' <<< "$last_line")
+        if kill -0 "$pid" 2>/dev/null; then
+            ECHOMESG "From slurm.long_nvt: Process with PID $pid exists. Killing it..."
+            kill -9 "$pid"
+        else
+            ECHOMESG "From slurm.long_nvt: Process with PID $pid does not exist."
+        fi
+    else
+        ECHOMESG "From slurm.long_nvt: Last line of the file is not a valid PID."
+    fi
+}
+
+# input gro file for starting point
+STRCTURE=../13_npt_afterNvtNeutShellOil90AptesOdap50Restrains/npt.gro
+# Style of run
+STYLE=nvt
+# Name of the simulation
+LABEL=nvt_afterEmRestraintsNeutShellOil90DeoAptesOdap50Longer
+# Output to check grompp
+TPRFILE=$STYLE.tpr
+
+# check if the structure file exists
+if [ ! -f "$STRCTURE" ]; then
+    ECHOMESG "Error from slurm.long_nvt: the structure file does not exist!"
+    KILLJOB
+    exit 1
+fi
+
+gmx_mpi grompp -f $STYLE.mdp \
+               -c $STRCTURE \
+               -r $STRCTURE \
+               -p topol.top \
+               -n index.ndx \
+               -o $STYLE.tpr \
+               -maxwarn -1
+
+if [ -f $TPRFILE ]; then
+    srun gmx_mpi mdrun -v -s $TPRFILE \
+                          -o $STYLE \
+                          -e $STYLE \
+                          -x $STYLE \
+                          -c $STYLE \
+                          -cpo $STYLE \
+                          -ntomp $THREADS \
+                          -pin on
+else
+	ECHOMESG "Error from slurm.long_nvt: The $TPRFILE has not been created!"
+	KILLJOB
+fi
