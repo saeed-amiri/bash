@@ -1,0 +1,29 @@
+#!/bin/bash 
+#SBATCH --job-name 50A90@C
+#SBATCH --nodes=3
+#SBATCH --ntasks=144
+#SBATCH --time 12:00:00
+#SBATCH -A hbp00076
+
+THREADS=2
+export SLURM_CPU_BIND=none
+export OMP_NUM_THREADS=$THREADS
+export GMX_MAXCONSTRWARN=-1
+
+module load intel
+module load impi
+module load gromacs/2021.2-plumed
+
+STYLE=nvt
+TPRFILE=$STYLE.tpr
+
+srun gmx_mpi mdrun -v -s $TPRFILE \
+                   -o $STYLE \
+                   -e $STYLE \
+                   -x $STYLE \
+                   -c $STYLE \
+                   -cpo $STYLE \
+                   -cpi $STYLE.cpt \
+                   -ntomp $THREADS \
+                   -pin on
+
