@@ -1,5 +1,6 @@
 #!/bin/bash 
 #SBATCH --job-name 50A90@V
+#SBATCH --cpus-per-task=1
 #SBATCH --nodes=3
 #SBATCH --ntasks=144
 #SBATCH --time 12:00:00
@@ -69,14 +70,15 @@ gmx_mpi grompp -f $STYLE.mdp \
                -maxwarn -1
 
 if [ -f $TPRFILE ]; then
-    srun gmx_mpi mdrun -v -s $TPRFILE \
-                          -o $STYLE \
-                          -e $STYLE \
-                          -x $STYLE \
-                          -c $STYLE \
-                          -cpo $STYLE \
-                          -ntomp $THREADS \
-                          -pin on
+srun --cpu-per-task=$SLURM_CPUS_PER_TASK \
+     gmx_mpi mdrun -v -s $TPRFILE \
+                      -o $STYLE \
+                      -e $STYLE \
+                      -x $STYLE \
+                      -c $STYLE \
+                      -cpo $STYLE \
+                      -ntomp $THREADS \
+                      -pin on
 else
 	ECHOMESG "Error from slurm.long_nvt: The $TPRFILE has not been created!"
 	KILLJOB

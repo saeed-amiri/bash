@@ -1,5 +1,6 @@
 #!/bin/bash 
 #SBATCH --job-name NeW@EM
+#SBATCH --cpus-per-task=1
 #SBATCH --nodes=1
 #SBATCH --ntasks=48
 #SBATCH --time 12:00:00
@@ -66,14 +67,15 @@ gmx_mpi grompp -f $STYLE.mdp \
                -maxwarn -1
 
 if [ -f $TPRFILE ]; then
-    srun gmx_mpi mdrun -v -s $TPRFILE \
-                          -o $STYLE \
-                          -e $STYLE \
-                          -x $STYLE \
-                          -c $STYLE \
-                          -cpo $STYLE \
-                          -ntomp $THREADS \
-                          -pin on
+srun --cpu-per-task=$SLURM_CPUS_PER_TASK \
+     gmx_mpi mdrun -v -s $TPRFILE \
+                      -o $STYLE \
+                      -e $STYLE \
+                      -x $STYLE \
+                      -c $STYLE \
+                      -cpo $STYLE \
+                      -ntomp $THREADS \
+                      -pin on
 else
     PWD=$(pwd)
     echo "The job in dir: ${PWD} crashed, jobid: ${SLURM_JOB_ID}"

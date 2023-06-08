@@ -1,5 +1,6 @@
 #!/bin/bash 
 #SBATCH --job-name 50A90@C
+#SBATCH --cpus-per-task=1
 #SBATCH --nodes=3
 #SBATCH --ntasks=144
 #SBATCH --time 12:00:00
@@ -23,13 +24,14 @@ cat << EOF
     "=============================================="
 EOF
 
-srun gmx_mpi mdrun -v -s $TPRFILE \
-                   -o $STYLE \
-                   -e $STYLE \
-                   -x $STYLE \
-                   -c $STYLE \
-                   -cpo $STYLE \
-                   -cpi $STYLE.cpt \
-                   -ntomp $THREADS \
-                   -pin on
+srun --cpu-per-task=$SLURM_CPUS_PER_TASK \
+    gmx_mpi mdrun -v -s $TPRFILE \
+                     -o $STYLE \
+                     -e $STYLE \
+                     -x $STYLE \
+                     -c $STYLE \
+                     -cpo $STYLE \
+                     -cpi $STYLE.cpt \
+                     -ntomp $THREADS \
+                     -pin on
 
