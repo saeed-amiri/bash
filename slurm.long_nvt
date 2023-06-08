@@ -49,6 +49,10 @@ LABEL=nvt_afterEmRestraintsNeutShellOil90DeoAptesOdap50Longer
 # Output to check grompp
 TPRFILE=$STYLE.tpr
 
+ECHOMESG "$(date)" \
+         "Input structure input is: $STRUCTURE"\
+         "=============================================="
+
 # check if the structure file exists
 if [ ! -f "$STRCTURE" ]; then
     ECHOMESG "Error from slurm.long_nvt: the structure file does not exist!"

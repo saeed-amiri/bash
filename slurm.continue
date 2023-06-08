@@ -17,6 +17,12 @@ module load gromacs/2021.2-plumed
 STYLE=nvt
 TPRFILE=$STYLE.tpr
 
+cat << EOF
+    "$(date)" \
+    "Continuing job"\
+    "=============================================="
+>> EOF
+
 srun gmx_mpi mdrun -v -s $TPRFILE \
                    -o $STYLE \
                    -e $STYLE \
