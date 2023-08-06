@@ -1,90 +1,95 @@
-#! /bin/bash
+#!/bin/bash
 
-# Write to both file and stdout
-ECHOMESG() {
-    for arg in "$@"; do
-        echo "$arg" >> "$REPORT"
-        echo "$arg"
-    done
-}
+# Usage: bash resubmit_script.sh CHECKFILE
 
-# Kill the nohub job when needed
-KILLJOB(){
-    REPORT=./RESUBMIT_REPORT  # Report file
-    file_path="./nohup.PID"  # Nohup file, to kill in total
-    last_line=$(tail -n 1 "$file_path")
-    if [[ $last_line =~ ^[0-9]+$ ]]; then
-        pid=$(awk '{print $1}' <<< "$last_line")
-        if kill -0 "$pid" 2>/dev/null; then
-            ECHOMESG "From slurm.long_nvt: Process with PID $pid exists. Killing it..."
-            kill -9 "$pid"
-        else
-            ECHOMESG "From slurm.long_nvt: Process with PID $pid does not exist."
-        fi
-    else
-        ECHOMESG "From slurm.long_nvt: Last line of the file is not a valid PID."
-    fi
-}
-# Continue the job
-RUNJOB() {
-    local job_name=$1
-    local sleep_duration=$2
-    ECHOMESG "Starting a new job" \
-             "$(date)" \
-             "" \
-             "Submit nvt job, with jobid: $job_name" \
-             "Sleep for $sleep_duration"
-    sleep "$sleep_duration"
-    ECHOMESG "############################" \
-             "Waking up..." \
-             "$(date)"
-}
+# Initialize variables
+REPORT="./RESUBMIT_REPORT"
+MAXNAP=15
+COUNTER=1
 
-# try to resubmit until condition is satisfied
-# Make a report file
-REPORT=./RESUBMIT_REPORT
-true > "$REPORT"
-# Check file for continuing the job, usually gro file
-CHECKFILE=$1
-ECHOMESG "check file is: $CHECKFILE"
-
-# How many times the job may need to be continue (total hours of the simulation divided
-# by the sleep time)
-MAX_RERUNS = 6
-# Run the first run
-Jobid=$(sbatch --parsable slurm.long_nvt)
-# Run the job
-RUNJOB "$Jobid" "13h"
-
-if [ -n "$CHECKFILE" ]; then
-    # If the check file is created by the first run, it should not continue
-    ECHOMESG "The $CHECKFILE does not exist yet, jobs will continue" \
-             "Looking for file: $CHECKFILE at every step"
-    COUNTER=1  # Count the number of resubmit
-    while [ ! -f "$CHECKFILE" ]; do
-        ((COUNTER++))
-
-        if [ $COUNTER -gt $MAX_RERUNS ]; then
-            ECHOMESG "COUNTER is greater than $MAX_RERUNS. Exiting script." \
-                     "Kill the nohup job: Too many rerun: $COUNTER"
-            # Kill the nohub job
-            KILLJOB
-            exit 1
-        fi
-        ECHOMESG " "
-
-        Jobid=$(sbatch --parsable slurm.continue)
-
-        RUNJOB "$Jobid" "13h"
-
-    done
-else
-    ECHOMESG "$CHECKFILE is found..." \
-             "Kill the nohup job, a $CHECKFILE is found before continuing the runs"
-    # Kill the nohub job
-    KILLJOB
+# Check if the CHECKFILE argument is provided
+if [ -z "$1" ]; then
+    echo "Error: Please provide the CHECKFILE argument."
+    echo "Usage: bash resubmit_script.sh CHECKFILE"
+    exit 1
 fi
 
-# Kill the nohub job
-ECHOMESG "Kill the nohup job, Conditions in this script: $0 is satisfied"
-KILLJOB
+CHECKFILE="$1"
+
+# Function to log messages to the REPORT file
+log_message() {
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" >> "$REPORT"
+}
+
+# Function to check the status of the job
+check_status() {
+    Jobid=$1
+    status_variable=$(sacct | grep "$Jobid" | grep standard | awk '{print $6}')
+
+    if [ "$status_variable" == "COMPLETED" ]; then
+        log_message "Job completed! Exit!"
+        exit 0
+    elif [ "$status_variable" == "TIMEOUT" ]; then
+        log_message "Job: $Jobid continues as expected."
+    elif [ "$status_variable" == "RUNNING" ]; then
+        while [ "$status_variable" == "RUNNING" ]; do
+            log_message "$Jobid is still running! Waiting for another hour..."
+            sleep 1h
+            status_variable=$(sacct | grep "$Jobid" | grep standard | awk '{print $6}')
+        done
+    fi
+}
+
+check_Jobid(){
+        if [ -z "$1" ]; then
+            LASTLINE=$(sacct | tail -1 | awk '{print $1}')
+            Jobid="${LASTLINE%%.*}"
+        fi
+}
+
+# Check the CHECKFILE condition initially
+if [ ! -f "$CHECKFILE" ]; then
+    log_message "Look for file: $CHECKFILE at every step"
+else
+    log_message "The condition is already satisfied. Job has completed or is not running."
+    exit 0
+fi
+
+# Submit the initial job and get the Jobid
+Jobid=$(sbatch --parsable slurm.long_nvt)
+
+# Log the initial job submission details
+log_message "Submit nvt job, with jobid: $Jobid"
+log_message "Sleep for 13 hours before checking status again."
+
+# Sleep for 13 hours before checking the job status
+sleep 13h
+
+check_Jobid $Jobid
+check_status $Jobid
+
+# Loop for resubmission
+while [ ! -f "$CHECKFILE" ]; do
+    if [ "$COUNTER" -le "$MAXNAP" ]; then
+        log_message "Resubmitting job, COUNTER nr.: $COUNTER"
+        log_message "Sleep for 13 hours before checking status again."
+        COUNTER=$(( COUNTER + 1 ))
+
+        # Submit the continuation job and get the Jobid
+        Jobid=$(sbatch --parsable slurm.continue)
+
+        # Sleep for 13 hours before checking the job status again
+        sleep 13h
+
+        # Check the state after waking up
+        check_Jobid $Jobid
+        # Check the status of the job
+        check_status "$Jobid"
+    else
+        log_message "The number of continued jobs exceeded the maximum allowed. Exiting."
+        exit 1
+    fi
+done
+
+# The CHECKFILE condition is met
+log_message "The CHECKFILE condition is now satisfied. Job has completed or is not running."
