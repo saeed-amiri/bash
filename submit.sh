@@ -5,7 +5,7 @@
 # Initialize variables
 REPORT="./RESUBMIT_REPORT"
 MAXNAP=15
-COUNTER=1
+COUNTER=0
 
 # Check if the CHECKFILE argument is provided
 if [ -z "$1" ]; then
@@ -25,18 +25,26 @@ log_message() {
 check_status() {
     Jobid=$1
     status_variable=$(sacct | grep "$Jobid" | grep standard | awk '{print $6}')
+    log_message "status of job $Jobid is $status_variable"
 
     if [ "$status_variable" == "COMPLETED" ]; then
         log_message "Job completed! Exit!"
         exit 0
     elif [ "$status_variable" == "TIMEOUT" ]; then
-        log_message "Job: $Jobid continues as expected."
+        log_message "Job: $Jobid continued as expected."
     elif [ "$status_variable" == "RUNNING" ]; then
         while [ "$status_variable" == "RUNNING" ]; do
             log_message "$Jobid is still running! Waiting for another hour..."
             sleep 1h
             status_variable=$(sacct | grep "$Jobid" | grep standard | awk '{print $6}')
         done
+    elif [ "$status_variable" == "FAILED" ]; then
+        # Get the last line of the nohup.PID
+        log_message "Job failed; kill nohup PID and exit 1"
+        nohupFile=nohup.PID
+        nohupPID=$(tac "$nohupFile" | grep -m 1 -v '^$')
+        kill $nohupPID
+        exit 1
     fi
 }
 
@@ -56,24 +64,24 @@ else
 fi
 
 # Submit the initial job and get the Jobid
-Jobid=$(sbatch --parsable slurm.long_nvt)
+Jobid_init=$(sbatch --parsable slurm.long_nvt)
 
 # Log the initial job submission details
-log_message "Submit nvt job, with jobid: $Jobid"
-log_message "Sleep for 13 hours before checking status again."
+log_message "Submit nvt job, with jobid: $Jobid_init"
+log_message "Sleep for 13 hours before rechecking status."
 
 # Sleep for 13 hours before checking the job status
 sleep 13h
 
-check_Jobid $Jobid
-check_status $Jobid
+check_Jobid $Jobid_init
+check_status $Jobid_init
 
 # Loop for resubmission
 while [ ! -f "$CHECKFILE" ]; do
     if [ "$COUNTER" -le "$MAXNAP" ]; then
-        log_message "Resubmitting job, COUNTER nr.: $COUNTER"
-        log_message "Sleep for 13 hours before checking status again."
         COUNTER=$(( COUNTER + 1 ))
+        log_message "Resubmitting job, COUNTER nr.: $COUNTER"
+        log_message "Sleep for 13 hours before rechecking status."
 
         # Submit the continuation job and get the Jobid
         Jobid=$(sbatch --parsable slurm.continue)
