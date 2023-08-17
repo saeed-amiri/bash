@@ -6,6 +6,12 @@
 REPORT="./RESUBMIT_REPORT"
 MAXNAP=32
 COUNTER=0
+JobName="DoubNP"
+
+# Make sure of the job name in slurm
+for slurm_file in slurm.long_nvt slurm.continue; do
+    sed -i "s/^#SBATCH --job-name.*/#SBATCH --job-name $JobName/" $slurm_file
+done
 
 # Check if the CHECKFILE argument is provided
 if [ -z "$1" ]; then
@@ -51,7 +57,7 @@ check_status() {
 
 check_Jobid(){
         if [ -z "$1" ]; then
-            LASTLINE=$(sacct | tail -1 | awk '{print $1}')
+            LASTLINE=$(sacct | grep $JobName | tail -1 | awk '{print $1}')
             Jobid="${LASTLINE%%.*}"
         fi
 }
@@ -63,6 +69,8 @@ else
     log_message "The condition is already satisfied. Job has completed or is not running."
     exit 0
 fi
+
+log_message "\nStarting Jobname: $JobName\n"
 
 # Submit the initial job and get the Jobid
 Jobid_init=$(sbatch --parsable slurm.long_nvt)
