@@ -10,7 +10,7 @@ JobName="DoubNP"
 
 # Make sure of the job name in slurm
 for slurm_file in slurm.long_nvt slurm.continue; do
-    sed -i "s/^#SBATCH --job-name.*/#SBATCH --job-name $JobName/" $slurm_file
+    sed -i "s/^#SBATCH --job-name.*/#SBATCH --job-name $JobName/" "$slurm_file"
 done
 
 # Check if the CHECKFILE argument is provided
@@ -29,7 +29,8 @@ log_message() {
 
 # Function to check the status of the job
 check_status() {
-    Jobid=$1
+    local Jobid="$1"
+    local status_variable
     status_variable=$(sacct | grep "$Jobid" | grep standard | awk '{print $6}')
     log_message "status of job $Jobid is $status_variable"
 
@@ -44,11 +45,12 @@ check_status() {
             sleep 1h
             status_variable=$(sacct | grep "$Jobid" | grep standard | awk '{print $6}')
         done
-        check_status $Jobid   # Recursive call to check_status
+        check_status "$Jobid"   # Recursive call to check_status
     elif [ "$status_variable" == "FAILED" ]; then
         # Get the last line of the nohup.PID
         log_message "Job failed; kill nohup PID and exit 1"
-        nohupFile=nohup.PID
+        local nohupFile=nohup.PID
+        local nohupPID
         nohupPID=$(tac "$nohupFile" | grep -m 1 -v '^$')
         kill "$nohupPID"
         exit 1
@@ -56,10 +58,11 @@ check_status() {
 }
 
 check_Jobid(){
-        if [ -z "$1" ]; then
-            LASTLINE=$(sacct | grep $JobName | tail -1 | awk '{print $1}')
-            Jobid="${LASTLINE%%.*}"
-        fi
+    if [ -z "$1" ]; then
+        local LASTLINE
+        LASTLINE=$(sacct | grep "$JobName" | tail -1 | awk '{print $1}')
+        Jobid="${LASTLINE%%.*}"
+    fi
 }
 
 # Check the CHECKFILE condition initially
@@ -82,8 +85,8 @@ log_message "Sleep for 13 hours before rechecking status."
 # Sleep for 13 hours before checking the job status
 sleep 13h
 
-check_Jobid $Jobid_init
-check_status $Jobid_init
+check_Jobid "$Jobid_init"
+check_status "$Jobid_init"
 
 # Loop for resubmission
 while [ ! -f "$CHECKFILE" ]; do
@@ -100,7 +103,7 @@ while [ ! -f "$CHECKFILE" ]; do
         sleep 13h
 
         # Check the state after waking up
-        check_Jobid $Jobid
+        check_Jobid "$Jobid"
         # Check the status of the job
         check_status "$Jobid"
     else
