@@ -4,7 +4,7 @@
 
 # Initialize variables
 REPORT="./RESUBMIT_REPORT"
-MAXNAP=15
+MAXNAP=32
 COUNTER=0
 
 # Check if the CHECKFILE argument is provided
@@ -18,7 +18,7 @@ CHECKFILE="$1"
 
 # Function to log messages to the REPORT file
 log_message() {
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" >> "$REPORT"
+    echo -e "[$(date '+%Y-%m-%d %H:%M:%S')] $1" >> "$REPORT"
 }
 
 # Function to check the status of the job
@@ -31,19 +31,20 @@ check_status() {
         log_message "Job completed! Exit!"
         exit 0
     elif [ "$status_variable" == "TIMEOUT" ]; then
-        log_message "Job: $Jobid continued as expected."
+        log_message "Job: $Jobid continued as expected.\n"
     elif [ "$status_variable" == "RUNNING" ]; then
         while [ "$status_variable" == "RUNNING" ]; do
             log_message "$Jobid is still running! Waiting for another hour..."
             sleep 1h
             status_variable=$(sacct | grep "$Jobid" | grep standard | awk '{print $6}')
         done
+        check_status $Jobid   # Recursive call to check_status
     elif [ "$status_variable" == "FAILED" ]; then
         # Get the last line of the nohup.PID
         log_message "Job failed; kill nohup PID and exit 1"
         nohupFile=nohup.PID
         nohupPID=$(tac "$nohupFile" | grep -m 1 -v '^$')
-        kill $nohupPID
+        kill "$nohupPID"
         exit 1
     fi
 }
@@ -80,11 +81,12 @@ check_status $Jobid_init
 while [ ! -f "$CHECKFILE" ]; do
     if [ "$COUNTER" -le "$MAXNAP" ]; then
         COUNTER=$(( COUNTER + 1 ))
-        log_message "Resubmitting job, COUNTER nr.: $COUNTER"
-        log_message "Sleep for 13 hours before rechecking status."
 
         # Submit the continuation job and get the Jobid
         Jobid=$(sbatch --parsable slurm.continue)
+
+        log_message "Resubmitting job: $Jobid , COUNTER nr.: $COUNTER"
+        log_message "Sleep for 13 hours before rechecking status."
 
         # Sleep for 13 hours before checking the job status again
         sleep 13h
