@@ -19,6 +19,8 @@ module load gromacs/2021.2-plumed
 STRCTURE=./silica_water.gro
 # Style of run
 STYLE=em
+# mdp file
+MDP_FILE="$STYLE.mdp"
 # Name of the simulation
 LABEL=neutShellOil90DepAptesOdap50
 # Output to check grompp
@@ -54,11 +56,13 @@ cat << EOF
  *******************
  Directory is $DIR
  *******************
+ The topology file contains:
 
 EOF
 
+cat "$MDP_FILE"
 
-gmx_mpi grompp -f $STYLE.mdp \
+gmx_mpi grompp -f $MDP_FILE \
                -c $STRCTURE \
                -r $STRCTURE \
                -p topol.top \
