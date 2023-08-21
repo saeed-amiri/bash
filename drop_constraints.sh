@@ -31,7 +31,7 @@ check_status() {
     log_message "Status of job $jobid is $status_variable"
 
     if [ "$status_variable" == "COMPLETED" ]; then
-        log_message "Job completed! Renaming nvt.gro"
+        log_message "Job completed!"
     elif [ "$status_variable" == "TIMEOUT" ]; then
         log_message "Job: $jobid did not finish on time! EXIT!"
         exit 1
@@ -53,7 +53,7 @@ check_status() {
 }
 
 # Initialize constraint
-INITIAL_FORCE=5000
+INITIAL_FORCE=4500
 # Dropping value
 DROP_STEP=500
 
@@ -70,9 +70,9 @@ while [ "$INITIAL_FORCE" -ge "$DROP_STEP" ]; do
     # Submit job and monitor
     Jobid=$(sbatch --parsable $SLURM_FILE)
     log_message "Submitting job: $Jobid , Constraint Force: $UPDATED_FORCE"
-    log_message "Sleep for 2 hours before checking status."
+    log_message "Sleep for 90 mins before checking status."
 
-    sleep 2h
+    sleep 90m
     
     # Check the state after waking up
     check_Jobid "$Jobid"
@@ -82,9 +82,10 @@ while [ "$INITIAL_FORCE" -ge "$DROP_STEP" ]; do
     # Rename nvt.gro and update SLURM script
     UPDATE_GRO=nvt_"$UPDATED_FORCE".gro
 
-    if [ ! -f "$CHECKFILE" ]; then
+    if [ -f "$CHECKFILE" ]; then
        mv "$CHECKFILE" "$UPDATE_GRO"
        mv md.log md_"$UPDATED_FORCE".log
+       log_message "renaming files: $CHECKFILE -> $UPDATE_GRO , also the md.log\n"
     fi 
 
     # Update structure path in SLURM script
@@ -95,7 +96,7 @@ done
 if [ -f nvt_$DROP_STEP.gro ]; then
     sed -i 's/^gmx_mpi grompp -f.*/gmx_mpi grompp -f nvt_noConstraints.mdp \\/' $SLURM_FILE
     Jobid=$(sbatch --parsable $SLURM_FILE)
-    log_message "Submitting final job with id: $Jobid, and sleep 2 hours"
+    log_message "Submitting final job with id: $Jobid, and sleep 12 hours"
     sleep 12h
     # Check the state after waking up
     check_Jobid "$Jobid"
