@@ -62,6 +62,7 @@ EOF
 
 cat "$MDP_FILE"
 
+echo "*******************"
 gmx_mpi grompp -f $MDP_FILE \
                -c $STRCTURE \
                -r $STRCTURE \
