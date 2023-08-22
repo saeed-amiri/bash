@@ -4,14 +4,11 @@
 
 # Initialize variables
 REPORT="./RESUBMIT_REPORT"
-MAXNAP=32
+MAXNAP=10
 COUNTER=0
-JobName="DoubNP"
-
-# Make sure of the job name in slurm
-for slurm_file in slurm.long_nvt slurm.continue; do
-    sed -i "s/^#SBATCH --job-name.*/#SBATCH --job-name $JobName/" "$slurm_file"
-done
+JobName="2NPWzF"
+TOPFILE=./topol_updated.top
+CHECKFILE="$1"
 
 # Check if the CHECKFILE argument is provided
 if [ -z "$1" ]; then
@@ -20,7 +17,31 @@ if [ -z "$1" ]; then
     exit 1
 fi
 
-CHECKFILE="$1"
+# Function to check if a file exists and print a message
+check_file_exists() {
+    local file_path="$1"
+    if [ -f "$file_path" ]; then
+        echo "File $file_path exists."
+    else
+        echo "File $file_path does not exist. EXIT!"
+        exit 1
+    fi
+}
+
+# Function to check #include statements in a file
+check_includes() {
+    local input_file="$1"
+    # Regular expression pattern to match #include statements and capture the file path
+    local pattern='#include[[:space:]]*"([^"]*)"'
+    while IFS= read -r line; do
+        # Check if the line matches the pattern
+        if [[ $line =~ $pattern ]]; then
+            # The captured file path is in "${BASH_REMATCH[1]}"
+            file_path="${BASH_REMATCH[1]}"
+            check_file_exists "$file_path"
+        fi
+    done < "$input_file"
+}
 
 # Function to log messages to the REPORT file
 log_message() {
@@ -65,6 +86,14 @@ check_Jobid(){
     fi
 }
 
+# Call the function to check input files
+check_includes $TOPFILE
+
+# Make sure of the job name in slurm
+for slurm_file in slurm.long_nvt slurm.continue; do
+    sed -i "s/^#SBATCH --job-name.*/#SBATCH --job-name $JobName/" "$slurm_file"
+done
+
 # Check the CHECKFILE condition initially
 if [ ! -f "$CHECKFILE" ]; then
     log_message "Look for file: $CHECKFILE at every step"
@@ -73,7 +102,7 @@ else
     exit 0
 fi
 
-log_message "\nStarting Jobname: $JobName\n"
+log_message "\n\t\tStarting Jobname: $JobName\n"
 
 # Submit the initial job and get the Jobid
 Jobid_init=$(sbatch --parsable slurm.long_nvt)
