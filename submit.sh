@@ -127,6 +127,9 @@ while [ ! -f "$CHECKFILE" ]; do
 
         log_message "Resubmitting job: $Jobid , COUNTER nr.: $COUNTER"
         log_message "Sleep for 13 hours before rechecking status."
+        SlurmFile=slurm-$Jobid.out
+        LastStep=$(tac $SlurmFile |grep "^imb" |head -1)
+        log_message "Last MD step is:\n\t$LastStep"
 
         # Sleep for 13 hours before checking the job status again
         sleep 13h
