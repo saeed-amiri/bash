@@ -98,7 +98,7 @@ done
 if [ ! -f "$CHECKFILE" ]; then
     log_message "Look for file: $CHECKFILE at every step"
 else
-    log_message "The condition is already satisfied. Job has completed or is not running."
+    log_message "The condition is already satisfied. Job has been terminated!"
     exit 0
 fi
 
@@ -126,7 +126,7 @@ while [ ! -f "$CHECKFILE" ]; do
         Jobid=$(sbatch --parsable slurm.continue)
 
         log_message "Resubmitting job: $Jobid , COUNTER nr.: $COUNTER"
-        log_message "Sleep for 13 hours before rechecking status."
+        log_message "Sleep for 13 hours before rechecking status..."
         SlurmFile=slurm-$Jobid.out
         LastStep=$(tac $SlurmFile |grep "^imb" |head -1)
         log_message "Last MD step is:\n\t$LastStep"
@@ -139,10 +139,10 @@ while [ ! -f "$CHECKFILE" ]; do
         # Check the status of the job
         check_status "$Jobid"
     else
-        log_message "The number of continued jobs exceeded the maximum allowed. Exiting."
+        log_message "The number of continued jobs exceeded the maximum allowed. Exit!."
         exit 1
     fi
 done
 
 # The CHECKFILE condition is met
-log_message "The CHECKFILE condition is now satisfied. Job has completed or is not running."
+log_message "The CHECKFILE condition is now satisfied. Job has been terminated!"
