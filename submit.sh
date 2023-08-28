@@ -59,7 +59,10 @@ check_status() {
         log_message "Job completed! Exit!"
         exit 0
     elif [ "$status_variable" == "TIMEOUT" ]; then
-        log_message "Job: $Jobid continued as expected.\n"
+        local SlurmFile=slurm-$Jobid.out
+        local LastStep=$(tac $SlurmFile |grep "^imb" |head -1)
+        log_message "Job: $Jobid continued as expected."
+        log_message "Last MD step is:\n\t$LastStep\n"
     elif [ "$status_variable" == "RUNNING" ]; then
         while [ "$status_variable" == "RUNNING" ]; do
             log_message "$Jobid is still running! Waiting for another hour..."
@@ -127,9 +130,6 @@ while [ ! -f "$CHECKFILE" ]; do
 
         log_message "Resubmitting job: $Jobid , COUNTER nr.: $COUNTER"
         log_message "Sleep for 13 hours before rechecking status..."
-        SlurmFile=slurm-$Jobid.out
-        LastStep=$(tac $SlurmFile |grep "^imb" |head -1)
-        log_message "Last MD step is:\n\t$LastStep"
 
         # Sleep for 13 hours before checking the job status again
         sleep 13h
