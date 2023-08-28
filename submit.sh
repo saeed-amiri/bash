@@ -56,7 +56,7 @@ check_status() {
     log_message "status of job $Jobid is $status_variable"
 
     if [ "$status_variable" == "COMPLETED" ]; then
-        log_message "Job completed! Exit!"
+        log_message "Job completed! EXIT!"
         exit 0
     elif [ "$status_variable" == "TIMEOUT" ]; then
         local LastStep
@@ -140,7 +140,7 @@ while [ ! -f "$CHECKFILE" ]; do
         # Check the status of the job
         check_status "$Jobid"
     else
-        log_message "The number of continued jobs exceeded the maximum allowed. Exit!."
+        log_message "The number of continued jobs exceeded the maximum allowed. EXIT!."
         exit 1
     fi
 done
