@@ -61,7 +61,7 @@ check_status() {
     elif [ "$status_variable" == "TIMEOUT" ]; then
         local LastStep
         local SlurmFile=slurm-$Jobid.out
-        LastStep=$(tac $SlurmFile |grep "^imb" |head -1)
+        LastStep=$(tac "$SlurmFile" |grep "^imb" |head -1)
         log_message "Job: $Jobid continued as expected."
         log_message "Last MD step is:\n\t$LastStep\n"
     elif [ "$status_variable" == "RUNNING" ]; then
