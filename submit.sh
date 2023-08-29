@@ -140,7 +140,7 @@ while [ ! -f "$CHECKFILE" ]; do
         # Check the status of the job
         check_status "$Jobid"
     else
-        log_message "The number of continued jobs exceeded the maximum allowed. EXIT!."
+        log_message "The number of continued jobs exceeded the maximum allowed numbers. EXIT!."
         exit 1
     fi
 done
