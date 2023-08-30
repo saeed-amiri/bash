@@ -3,12 +3,12 @@
 # Usage: bash resubmit_script.sh CHECKFILE
 
 # Initialize variables
-REPORT="./RESUBMIT_REPORT"
-MAXNAP=10
-COUNTER=0
-JobName="2NPWzF"
-TOPFILE=./topol_updated.top
 CHECKFILE="$1"
+JobName="2NPWzF"
+REPORT="./RESUBMIT_REPORT"
+TOPFILE="./topol_updated.top"
+MAXNAP=20
+COUNTER=0
 
 # Check if the CHECKFILE argument is provided
 if [ -z "$1" ]; then
