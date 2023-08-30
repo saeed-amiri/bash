@@ -58,12 +58,14 @@ check_status() {
     if [ "$status_variable" == "COMPLETED" ]; then
         log_message "Job completed! EXIT!"
         exit 0
+
     elif [ "$status_variable" == "TIMEOUT" ]; then
         local LastStep
         local SlurmFile=slurm-$Jobid.out
         LastStep=$(tac "$SlurmFile" |grep "^imb" |head -1)
         log_message "Job: $Jobid continued as expected."
         log_message "Last MD step is:\n\t$LastStep\n"
+
     elif [ "$status_variable" == "RUNNING" ]; then
         while [ "$status_variable" == "RUNNING" ]; do
             log_message "$Jobid is still running! Waiting for another hour..."
@@ -71,6 +73,7 @@ check_status() {
             status_variable=$(sacct | grep "$Jobid" | grep standard | awk '{print $6}')
         done
         check_status "$Jobid"   # Recursive call to check_status
+
     elif [ "$status_variable" == "FAILED" ]; then
         # Get the last line of the nohup.PID
         log_message "Job failed; kill nohup PID and exit 1"
@@ -79,6 +82,11 @@ check_status() {
         nohupPID=$(tac "$nohupFile" | grep -m 1 -v '^$')
         kill "$nohupPID"
         exit 1
+
+    elif [ "$status_variable" == "PENDING" ]; then
+        log_message "Job still PENDING, sleep for 13h !!!"
+        sleep 13h
+        check_status "$Jobid"   # Recursive call to check_status
     fi
 }
 
