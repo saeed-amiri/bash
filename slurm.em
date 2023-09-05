@@ -19,16 +19,22 @@ module load gromacs/2021.2-plumed
 
 # input gro file for starting point
 STRCTURE=./system.gro
+
 # Style of run
 STYLE=em
+
 # mdp file
 MDP_FILE="$STYLE.mdp"
+
 # Name of the simulation
 LABEL=
+
 # Output to check grompp
 TPRFILE=$STYLE.tpr
+
 # Directory to move all the data to it after job done
 DIR="$STYLE"_"$LABEL"
+
 # Mail info, if True will send email
 if [ -f $TPRFILE ]; then
     rm $TPRFILE
@@ -64,7 +70,8 @@ EOF
 
 cat "$MDP_FILE"
 
-echo "*******************"
+echo -e "\n*******************\n"
+
 gmx_mpi grompp -f $MDP_FILE \
                -c $STRCTURE \
                -r $STRCTURE \
@@ -74,15 +81,15 @@ gmx_mpi grompp -f $MDP_FILE \
                -maxwarn -1
 
 if [ -f $TPRFILE ]; then
-srun --cpus-per-task=$SLURM_CPUS_PER_TASK \
-     gmx_mpi mdrun -v -s $TPRFILE \
-                      -o $STYLE \
-                      -e $STYLE \
-                      -x $STYLE \
-                      -c $STYLE \
-                      -cpo $STYLE \
-                      -ntomp $THREADS \
-                      -pin on
+    srun --cpus-per-task=$SLURM_CPUS_PER_TASK \
+        gmx_mpi mdrun -v -s $TPRFILE \
+                         -o $STYLE \
+                         -e $STYLE \
+                         -x $STYLE \
+                         -c $STYLE \
+                         -cpo $STYLE \
+                         -ntomp $THREADS \
+                         -pin on
 else
     PWD=$(pwd)
     echo "The job in dir: ${PWD} crashed, jobid: ${SLURM_JOB_ID}"

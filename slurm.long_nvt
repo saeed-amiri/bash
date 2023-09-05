@@ -18,14 +18,29 @@ module load gromacs/2021.2-plumed
 
 # input gro file for starting point
 STRCTURE=../10_nvt_graduallyDroppingConstraints/nvt.gro
+
 # Style of run
 STYLE=nvt
+
 # Name of the simulation
 LABEL=after10ConstrinsFor20ns
+
 # Output to check grompp
 TPRFILE=$STYLE.tpr
+
+# Topo file
 TOPFILE=./topol_updated.top
+
+# mdp file
+MDP_FILE="$STYLE.mdp"
+
+echo -e "\n*******************\n"
 cat $TOPFILE
+
+echo -e "\n*******************\n"
+
+cat "$MDP_FILE"
+echo -e "\n*******************\n"
 
 # check if the structure file exists
 if [ ! -f "$STRCTURE" ]; then

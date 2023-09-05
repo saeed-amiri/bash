@@ -18,13 +18,16 @@ module load impi
 module load gromacs/2021.2-plumed
 
 # input gro file for starting point
-STRCTURE=./12_nvt_afterNptNeutShellOil90DeoAptesOdap50Restrains/nvt.gro
+STRCTURE=
 
 # Style of run
 STYLE=npt
 
+# mdp file
+MDP_FILE="$STYLE.mdp"
+
 # Name of the simulation
-LABEL=afterNvtNeutShellOil90AptesOdap50Restrains
+LABEL=
 
 # Output to check grompp
 TPRFILE=$STYLE.tpr
@@ -64,7 +67,11 @@ cat << EOF
 
 EOF
 
-gmx_mpi grompp -f $STYLE.mdp \
+cat "$MDP_FILE"
+
+echo -e "\n*******************\n"
+
+gmx_mpi grompp -f $MDP_FILE \
                -c $STRCTURE \
                -r $STRCTURE \
                -p topol.top \
@@ -73,15 +80,18 @@ gmx_mpi grompp -f $STYLE.mdp \
                -maxwarn -1
 
 if [ -f $TPRFILE ]; then
-srun --cpus-per-task=$SLURM_CPUS_PER_TASK \
-     gmx_mpi mdrun -v -s $TPRFILE \
-                      -o $STYLE \
-                      -e $STYLE \
-                      -x $STYLE \
-                      -c $STYLE \
-                      -cpo $STYLE \
-                      -ntomp $THREADS \
-                      -pin on
+    srun --cpus-per-task=$SLURM_CPUS_PER_TASK \
+        gmx_mpi mdrun -v -s $TPRFILE \
+                         -o $STYLE \
+                         -e $STYLE \
+                         -x $STYLE \
+                         -c $STYLE \
+                         -cpo $STYLE \
+                         -ntomp $THREADS \
+                         -pin on
+else
+    PWD=$(pwd)
+    echo "The job in dir: ${PWD} crashed, jobid: ${SLURM_JOB_ID}"
 fi
 
 if [ -f $STYLE.gro ]; then
