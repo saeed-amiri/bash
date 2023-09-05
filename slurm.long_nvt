@@ -36,9 +36,7 @@ MDP_FILE="$STYLE.mdp"
 
 echo -e "\n*******************\n"
 cat $TOPFILE
-
 echo -e "\n*******************\n"
-
 cat "$MDP_FILE"
 echo -e "\n*******************\n"
 

@@ -26,6 +26,9 @@ STYLE=em
 # mdp file
 MDP_FILE="$STYLE.mdp"
 
+# Topo file
+TOPFILE=./topol.top
+
 # Name of the simulation
 LABEL=
 
@@ -68,14 +71,16 @@ cat << EOF
 
 EOF
 
+echo -e "\n*******************\n"
+cat $TOPFILE
+echo -e "\n*******************\n"
 cat "$MDP_FILE"
-
 echo -e "\n*******************\n"
 
 gmx_mpi grompp -f $MDP_FILE \
                -c $STRCTURE \
                -r $STRCTURE \
-               -p topol.top \
+               -p $TOPFILE \
                -n index.ndx \
                -o $STYLE.tpr \
                -maxwarn -1
