@@ -26,11 +26,11 @@ STYLE=em
 # mdp file
 MDP_FILE="$STYLE.mdp"
 
-# Topo file
-TOPFILE=./topol.top
-
 # Name of the simulation
 LABEL=
+
+# Topo file
+TOPFILE=./topol.top
 
 # Output to check grompp
 TPRFILE=$STYLE.tpr

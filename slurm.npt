@@ -23,11 +23,11 @@ STRCTURE=
 # Style of run
 STYLE=npt
 
-# mdp file
-MDP_FILE="$STYLE.mdp"
-
 # Name of the simulation
 LABEL=
+
+# mdp file
+MDP_FILE="$STYLE.mdp"
 
 # Output to check grompp
 TPRFILE=$STYLE.tpr
