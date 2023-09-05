@@ -1,13 +1,15 @@
 #!/bin/bash 
 #SBATCH --job-name NeW@EM
-#SBATCH --cpus-per-task=1
-#SBATCH --nodes=1
-#SBATCH --ntasks=48
+#SBATCH --nodes=2
+#SBATCH --ntasks=192
 #SBATCH --time 12:00:00
+#SBATCH --constraint=turbo_on
 #SBATCH -A hbp00076
+
 
 THREADS=2
 export SLURM_CPU_BIND=none
+export SLURM_CPUS_PER_TASK=$THREADS
 export OMP_NUM_THREADS=$THREADS
 export GMX_MAXCONSTRWARN=-1
 
