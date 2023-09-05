@@ -1,7 +1,7 @@
 #!/bin/bash 
 #SBATCH --job-name NeW@EM
-#SBATCH --nodes=2
-#SBATCH --ntasks=192
+#SBATCH --nodes=4
+#SBATCH --ntasks=384
 #SBATCH --time 12:00:00
 #SBATCH --constraint=turbo_on
 #SBATCH -A hbp00076
@@ -18,13 +18,13 @@ module load impi
 module load gromacs/2021.2-plumed
 
 # input gro file for starting point
-STRCTURE=./silica_water.gro
+STRCTURE=./system.gro
 # Style of run
 STYLE=em
 # mdp file
 MDP_FILE="$STYLE.mdp"
 # Name of the simulation
-LABEL=neutShellOil90DepAptesOdap50
+LABEL=
 # Output to check grompp
 TPRFILE=$STYLE.tpr
 # Directory to move all the data to it after job done
@@ -74,7 +74,7 @@ gmx_mpi grompp -f $MDP_FILE \
                -maxwarn -1
 
 if [ -f $TPRFILE ]; then
-srun --cpu-per-task=$SLURM_CPUS_PER_TASK \
+srun --cpus-per-task=$SLURM_CPUS_PER_TASK \
      gmx_mpi mdrun -v -s $TPRFILE \
                       -o $STYLE \
                       -e $STYLE \

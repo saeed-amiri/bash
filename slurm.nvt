@@ -1,7 +1,7 @@
 #!/bin/bash 
 #SBATCH --job-name NeW@EM
-#SBATCH --nodes=2
-#SBATCH --ntasks=192
+#SBATCH --nodes=8
+#SBATCH --ntasks=768
 #SBATCH --time 12:00:00
 #SBATCH --constraint=turbo_on
 #SBATCH -A hbp00076
@@ -69,7 +69,7 @@ gmx_mpi grompp -f $STYLE.mdp \
                -maxwarn -1
 
 if [ -f $TPRFILE ]; then
-srun --cpu-per-task=$SLURM_CPUS_PER_TASK \
+srun --cpus-per-task=$SLURM_CPUS_PER_TASK \
      gmx_mpi mdrun -v -s $TPRFILE \
                       -o $STYLE \
                       -e $STYLE \
