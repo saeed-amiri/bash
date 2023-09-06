@@ -8,6 +8,7 @@ JobName="DropCo"
 CHECKFILE=nvt.gro
 SLURM_FILE=slurm.drop_nvt
 MDP_FILE=nvt.mdp
+JOBNAME=Dr
 
 # Make sure of the job name in slurm
 sed -i "s/^#SBATCH --job-name.*/#SBATCH --job-name $JobName/" $SLURM_FILE
@@ -92,6 +93,7 @@ while [ "$INITIAL_FORCE" -ge "$DROP_STEP" ]; do
     fi 
 
     # Update structure path in SLURM script
+    sed =i "s/^#SBATCH --job-name.*/#SBATCH --job-name $JOBNAME$UPDATED_FORCE"
     sed -i "s/^STRCTURE=.*/STRCTURE=.\/$UPDATE_GRO/" "$SLURM_FILE"
     log_message "Starting new job with initital structure: $UPDATE_GRO"
 done
