@@ -1,5 +1,5 @@
 #!/bin/bash 
-#SBATCH --job-name NeW@EM
+#SBATCH --job-name Drop
 #SBATCH --nodes=4
 #SBATCH --ntasks=384
 #SBATCH --time 12:00:00
@@ -46,20 +46,6 @@ fi
 if [ ! -f "$STRCTURE" ]; then
     echo "Error: the structure file does not exist!"
     exit 1
-fi
-
-# Naming the dirs, initiate with an integer
-dir_count=$(find . -maxdepth 1 -type d -regex './[0-9].*' | wc -l)
-count=1
-if [[ $dir_count -eq 0 ]]; then
-    DIR="${count}_${DIR}"
-else
-    for dir in */; do
-        if [[ $dir =~ ^[0-9] ]]; then
-            ((count++))
-        fi
-    done
-    DIR="${count}_${DIR}"
 fi
 
 cat << EOF
