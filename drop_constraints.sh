@@ -7,6 +7,7 @@ REPORT="./RESUBMIT_REPORT"
 JobName="DropCo"
 CHECKFILE=nvt.gro
 SLURM_FILE=slurm.drop_nvt
+MDP_FILE=nvt.mdp
 
 # Make sure of the job name in slurm
 sed -i "s/^#SBATCH --job-name.*/#SBATCH --job-name $JobName/" $SLURM_FILE
@@ -68,6 +69,8 @@ while [ "$INITIAL_FORCE" -ge "$DROP_STEP" ]; do
     INITIAL_FORCE="$UPDATED_FORCE"
 
     # Submit job and monitor
+    # make sure the of the name of the mdp file
+    sed -i "s/^MDP_FILE=.*/MDP_FILE=nvt.mdp/" "$SLURM_FILE"
     Jobid=$(sbatch --parsable $SLURM_FILE)
     log_message "Submitting job: $Jobid , Constraint Force: $UPDATED_FORCE"
     log_message "Sleep for 90 mins before checking status."
@@ -94,7 +97,7 @@ while [ "$INITIAL_FORCE" -ge "$DROP_STEP" ]; do
 done
 
 if [ -f nvt_$DROP_STEP.gro ]; then
-    sed -i 's/^gmx_mpi grompp -f.*/gmx_mpi grompp -f nvt_noConstraints.mdp \\/' $SLURM_FILE
+    sed -i 's/^MDP_FILE=.*/MDP_FILE=nvt_noConstraints.mdp \\/' $SLURM_FILE
     Jobid=$(sbatch --parsable $SLURM_FILE)
     log_message "Submitting final job with id: $Jobid, and sleep 12 hours"
     sleep 12h
