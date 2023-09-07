@@ -39,8 +39,8 @@ check_includes() {
 }
 
 # Call the function to check input files
-check_file_exists $TOPFILE
-check_includes $TOPFILE
+check_file_exists $TOP_FILE
+check_includes $TOP_FILE
 
 # Make sure of the job name in slurm
 sed -i "s/^#SBATCH --job-name.*/#SBATCH --job-name $JobName/" $SLURM_FILE
