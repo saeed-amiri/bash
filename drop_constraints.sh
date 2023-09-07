@@ -111,10 +111,8 @@ while [ "$INITIAL_FORCE" -ge "$DROP_STEP" ]; do
     Jobid=$(sbatch --parsable $SLURM_FILE)
     log_message "Submitting job: $Jobid , Constraint Force: $UPDATED_FORCE"
     
-    sleep $SLEEPTIME
-    
     log_message "Sleep for $SLEEPTIME mins before checking status."
-
+    sleep $SLEEPTIME
     
     # Check the state after waking up
     check_Jobid "$Jobid"
