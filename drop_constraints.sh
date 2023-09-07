@@ -11,6 +11,36 @@ MDP_FILE=nvt.mdp
 SLEEPTIME=120m
 SNOOZE=60m
 
+# Function to check if a file exists and print a message
+check_file_exists() {
+    local file_path="$1"
+    if [ -f "$file_path" ]; then
+        echo "File $file_path exists."
+    else
+        echo "File $file_path does not exist. EXIT!"
+        exit 1
+    fi
+}
+
+# Function to check #include statements in a file
+check_includes() {
+    local input_file="$1"
+    # Regular expression pattern to match #include statements and capture the file path
+    local pattern='#include[[:space:]]*"([^"]*)"'
+    while IFS= read -r line; do
+        # Check if the line matches the pattern
+        if [[ $line =~ $pattern ]]; then
+            # The captured file path is in "${BASH_REMATCH[1]}"
+            file_path="${BASH_REMATCH[1]}"
+            check_file_exists "$file_path"
+        fi
+    done < "$input_file"
+}
+
+# Call the function to check input files
+check_file_exists $TOPFILE
+check_includes $TOPFILE
+
 # Make sure of the job name in slurm
 sed -i "s/^#SBATCH --job-name.*/#SBATCH --job-name $JobName/" $SLURM_FILE
 
