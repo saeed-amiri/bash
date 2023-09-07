@@ -8,7 +8,6 @@ JobName="DropCo"
 CHECKFILE=nvt.gro
 SLURM_FILE=slurm.drop_nvt
 MDP_FILE=nvt.mdp
-JOBNAME=Dr
 
 # Make sure of the job name in slurm
 sed -i "s/^#SBATCH --job-name.*/#SBATCH --job-name $JobName/" $SLURM_FILE
@@ -33,7 +32,7 @@ check_status() {
     log_message "Status of job $jobid is $status_variable"
 
     if [ "$status_variable" == "COMPLETED" ]; then
-        log_message "Job completed!"
+        log_message "Job completed!\n"
     elif [ "$status_variable" == "TIMEOUT" ]; then
         log_message "Job: $jobid did not finish on time! EXIT!"
         exit 1
@@ -46,7 +45,7 @@ check_status() {
         check_status "$jobid"   # Recursive call to check_status
     elif [ "$status_variable" == "FAILED" ]; then
         # Handle job failure
-        log_message "Job failed; kill nohup PID and exit 1"
+        log_message "Job failed; kill nohup PID and exit 1\n"
         nohupFile=nohup.PID
         nohupPID=$(tac "$nohupFile" | grep -m 1 -v '^$')
         kill "$nohupPID"
@@ -55,18 +54,18 @@ check_status() {
 }
 
 # Initialize constraint
-INITIAL_FORCE=4500
+INITIAL_FORCE=5000
 # Dropping value
-DROP_STEP=500
+DROP_STEP=1000
 
 # Gradually decrease constraints
 while [ "$INITIAL_FORCE" -ge "$DROP_STEP" ]; do
     UPDATED_FORCE=$((INITIAL_FORCE - DROP_STEP))
     
     # Update constraints in POSRES files
-    for POSRES_FILE in STRONG_POSRES1.itp STRONG_POSRES2.itp; do
-        sed -i "s/$INITIAL_FORCE/$UPDATED_FORCE/g" "$POSRES_FILE"
-    done
+    POSRES_FILE="STRONG_POSRES.itp"
+    sed -i "s/$INITIAL_FORCE/$UPDATED_FORCE/g" "$POSRES_FILE"
+    # Update the intital force
     INITIAL_FORCE="$UPDATED_FORCE"
 
     # Submit job and monitor
@@ -74,9 +73,12 @@ while [ "$INITIAL_FORCE" -ge "$DROP_STEP" ]; do
     sed -i "s/^MDP_FILE=.*/MDP_FILE=nvt.mdp/" "$SLURM_FILE"
     Jobid=$(sbatch --parsable $SLURM_FILE)
     log_message "Submitting job: $Jobid , Constraint Force: $UPDATED_FORCE"
-    log_message "Sleep for 90 mins before checking status."
+    
+    SLEEPTIME=120m
+    sleep $SLEEPTIME
+    
+    log_message "Sleep for $SLEEPTIME mins before checking status."
 
-    sleep 90m
     
     # Check the state after waking up
     check_Jobid "$Jobid"
@@ -90,10 +92,15 @@ while [ "$INITIAL_FORCE" -ge "$DROP_STEP" ]; do
        mv "$CHECKFILE" "$UPDATE_GRO"
        mv md.log md_"$UPDATED_FORCE".log
        log_message "renaming files: $CHECKFILE -> $UPDATE_GRO , also the md.log\n"
-    fi 
+    else
+        log_message "Something went wrong; kill nohup PID and exit 1\n"
+        nohupFile=nohup.PID
+        nohupPID=$(tac "$nohupFile" | grep -m 1 -v '^$')
+        kill "$nohupPID"
+        exit 1
+    fi
 
     # Update structure path in SLURM script
-    sed =i "s/^#SBATCH --job-name.*/#SBATCH --job-name $JOBNAME$UPDATED_FORCE"
     sed -i "s/^STRCTURE=.*/STRCTURE=.\/$UPDATE_GRO/" "$SLURM_FILE"
     log_message "Starting new job with initital structure: $UPDATE_GRO"
 done
