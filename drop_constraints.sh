@@ -8,6 +8,8 @@ JobName="DropCo"
 CHECKFILE=nvt.gro
 SLURM_FILE=slurm.drop_nvt
 MDP_FILE=nvt.mdp
+SLEEPTIME=120m
+SNOOZE=60m
 
 # Make sure of the job name in slurm
 sed -i "s/^#SBATCH --job-name.*/#SBATCH --job-name $JobName/" $SLURM_FILE
@@ -39,7 +41,7 @@ check_status() {
     elif [ "$status_variable" == "RUNNING" ]; then
         while [ "$status_variable" == "RUNNING" ]; do
             log_message "$jobid is still running! Waiting for another hour..."
-            sleep 1h
+            sleep $SNOOZE
             status_variable=$(sacct | grep "$jobid" | grep standard | awk '{print $6}')
         done
         check_status "$jobid"   # Recursive call to check_status
@@ -50,6 +52,10 @@ check_status() {
         nohupPID=$(tac "$nohupFile" | grep -m 1 -v '^$')
         kill "$nohupPID"
         exit 1
+    elif [ "$status_variable" == "PENDING" ]; then
+        log_message "Job still PENDING, sleep for 13h !!!"
+        sleep $SLEEPTIME
+        check_status "$Jobid"   # Recursive call to check_status
     fi
 }
 
@@ -74,7 +80,6 @@ while [ "$INITIAL_FORCE" -ge "$DROP_STEP" ]; do
     Jobid=$(sbatch --parsable $SLURM_FILE)
     log_message "Submitting job: $Jobid , Constraint Force: $UPDATED_FORCE"
     
-    SLEEPTIME=120m
     sleep $SLEEPTIME
     
     log_message "Sleep for $SLEEPTIME mins before checking status."
