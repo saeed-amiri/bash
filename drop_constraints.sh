@@ -102,6 +102,7 @@ while [ "$INITIAL_FORCE" -ge "$DROP_STEP" ]; do
     # Update constraints in POSRES files
     POSRES_FILE="STRONG_POSRES.itp"
     sed -i "s/$INITIAL_FORCE/$UPDATED_FORCE/g" "$POSRES_FILE"
+    log_message "Constraints force on z is: $UPDATED_FORCE"
     # Update the intital force
     INITIAL_FORCE="$UPDATED_FORCE"
 
