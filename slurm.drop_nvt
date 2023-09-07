@@ -21,7 +21,7 @@ module load gromacs/2021.2-plumed
 STRCTURE=./system.gro
 
 # Style of run
-STYLE=em
+STYLE=nvt
 
 # Name of the simulation
 LABEL=

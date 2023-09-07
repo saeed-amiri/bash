@@ -8,8 +8,9 @@ JobName="DropCo"
 CHECKFILE=nvt.gro
 SLURM_FILE=slurm.drop_nvt
 MDP_FILE=nvt.mdp
-SLEEPTIME=120m
-SNOOZE=60m
+TOP_FILE=topol.top
+SLEEPTIME=40m
+SNOOZE=20m
 
 # Function to check if a file exists and print a message
 check_file_exists() {
