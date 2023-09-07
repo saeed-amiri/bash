@@ -126,7 +126,7 @@ while [ "$INITIAL_FORCE" -ge "$DROP_STEP" ]; do
     if [ -f "$CHECKFILE" ]; then
        mv "$CHECKFILE" "$UPDATE_GRO"
        mv md.log md_"$UPDATED_FORCE".log
-       log_message "renaming files: $CHECKFILE -> $UPDATE_GRO , also the md.log\n"
+       log_message "renaming files: $CHECKFILE -> $UPDATE_GRO , also the md.log"
     else
         log_message "Something went wrong; kill nohup PID and exit 1\n"
         nohupFile=nohup.PID
