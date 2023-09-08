@@ -96,7 +96,7 @@ INITIAL_FORCE=5000
 DROP_STEP=1000
 
 # Gradually decrease constraints
-while [ "$INITIAL_FORCE" -ge "$DROP_STEP" ]; do
+while [ "$INITIAL_FORCE" -gt "$DROP_STEP" ]; do
     UPDATED_FORCE=$((INITIAL_FORCE - DROP_STEP))
     
     # Update constraints in POSRES files
