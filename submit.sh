@@ -4,10 +4,12 @@
 
 # Initialize variables
 CHECKFILE="$1"
-JobName="2NPWzF"
+JobName="50VLg"
 REPORT="./RESUBMIT_REPORT"
-TOPFILE="./topol_updated.top"
-MAXNAP=20
+TOPFILE="./topol.top"
+SLEEPTIME=13h
+SNOOZE=1h
+MAXNAP=30
 COUNTER=0
 
 # Check if the CHECKFILE argument is provided
@@ -68,8 +70,8 @@ check_status() {
 
     elif [ "$status_variable" == "RUNNING" ]; then
         while [ "$status_variable" == "RUNNING" ]; do
-            log_message "$Jobid is still running! Waiting for another hour..."
-            sleep 1h
+            log_message "$Jobid is still running! Waiting for $SNOOZE..."
+            sleep $SNOOZE
             status_variable=$(sacct | grep "$Jobid" | grep standard | awk '{print $6}')
         done
         check_status "$Jobid"   # Recursive call to check_status
@@ -84,8 +86,8 @@ check_status() {
         exit 1
 
     elif [ "$status_variable" == "PENDING" ]; then
-        log_message "Job still PENDING, sleep for 13h !!!"
-        sleep 13h
+        log_message "Job still PENDING, sleep for $SLEEPTIME !!!"
+        sleep $SLEEPTIME
         check_status "$Jobid"   # Recursive call to check_status
     fi
 }
