@@ -108,6 +108,8 @@ for slurm_file in slurm.long_nvt slurm.continue; do
     sed -i "s/^#SBATCH --job-name.*/#SBATCH --job-name $JobName/" "$slurm_file"
 done
 
+log_message "\n\t\tStarting Jobname: $JobName\n"
+
 # Check the CHECKFILE condition initially
 if [ ! -f "$CHECKFILE" ]; then
     log_message "Look for file: $CHECKFILE at every step"
@@ -115,8 +117,6 @@ else
     log_message "The condition is already satisfied. Job has been terminated!"
     exit 0
 fi
-
-log_message "\n\t\tStarting Jobname: $JobName\n"
 
 # Submit the initial job and get the Jobid
 Jobid_init=$(sbatch --parsable slurm.long_nvt)
