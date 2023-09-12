@@ -1,7 +1,7 @@
 #!/bin/bash 
 #SBATCH --job-name 2NPWzF
-#SBATCH --nodes=8
-#SBATCH --ntasks=768
+#SBATCH --nodes=10
+#SBATCH --ntasks=960
 #SBATCH --time 12:00:00
 #SBATCH --constraint=turbo_on
 #SBATCH -A hbp00076
@@ -29,7 +29,7 @@ LABEL=after10ConstrinsFor20ns
 TPRFILE=$STYLE.tpr
 
 # Topo file
-TOPFILE=./topol_updated.top
+TOPFILE=./topol.top
 
 # mdp file
 MDP_FILE="$STYLE.mdp"
