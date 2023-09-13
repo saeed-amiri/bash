@@ -64,13 +64,13 @@ check_status() {
     elif [ "$status_variable" == "TIMEOUT" ]; then
         local LastStep
         local SlurmFile=slurm-$Jobid.out
-        LastStep=$(tac "$SlurmFile" |grep "^imb" |head -1)
+        LastStep=$(tac "$SlurmFile" |grep "^imb" |head -2)
         log_message "Job: $Jobid continued as expected."
-        log_message "Last MD step is:\n\t$LastStep\n"
+        log_message "Last two MD steps are:\n\t$LastStep\n"
 
     elif [ "$status_variable" == "RUNNING" ]; then
         while [ "$status_variable" == "RUNNING" ]; do
-            log_message "$Jobid is still running! Waiting for $SNOOZE..."
+            log_message "$Jobid is still running! Recheking in $SNOOZE..."
             sleep $SNOOZE
             status_variable=$(sacct | grep "$Jobid" | grep standard | awk '{print $6}')
         done
@@ -123,10 +123,10 @@ Jobid_init=$(sbatch --parsable slurm.long_nvt)
 
 # Log the initial job submission details
 log_message "Submit nvt job, with jobid: $Jobid_init"
-log_message "Sleep for 13 hours before rechecking status."
+log_message "Sleep for $SLEEPTIME hours before checking the status..."
 
 # Sleep for 13 hours before checking the job status
-sleep 13h
+sleep $SLEEPTIME
 
 check_Jobid "$Jobid_init"
 check_status "$Jobid_init"
@@ -140,10 +140,10 @@ while [ ! -f "$CHECKFILE" ]; do
         Jobid=$(sbatch --parsable slurm.continue)
 
         log_message "Resubmitting job: $Jobid , COUNTER nr.: $COUNTER"
-        log_message "Sleep for 13 hours before rechecking status..."
+        log_message "Sleep for $SLEEPTIME hours before checking the status..."
 
-        # Sleep for 13 hours before checking the job status again
-        sleep 13h
+        # Sleep for SLEEPTIME before checking the job status again
+        sleep $SLEEPTIME
 
         # Check the state after waking up
         check_Jobid "$Jobid"
