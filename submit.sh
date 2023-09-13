@@ -7,6 +7,7 @@ CHECKFILE="$1"
 JobName="50VLg"
 REPORT="./RESUBMIT_REPORT"
 TOPFILE="./topol.top"
+JOBIDLIST="./JOBID_LIST"
 SLEEPTIME=13h
 SNOOZE=1h
 MAXNAP=30
@@ -125,6 +126,8 @@ Jobid_init=$(sbatch --parsable slurm.long_nvt)
 log_message "Submit nvt job, with jobid: $Jobid_init"
 log_message "Sleep for $SLEEPTIME hours before checking the status..."
 
+echo -e "0\t$Jobid_init" > $JOBIDLIST
+
 # Sleep for 13 hours before checking the job status
 sleep $SLEEPTIME
 
@@ -139,6 +142,8 @@ while [ ! -f "$CHECKFILE" ]; do
         # Submit the continuation job and get the Jobid
         Jobid=$(sbatch --parsable slurm.continue)
 
+        echo -e "$COUNTER\t$Jobid_init" >> $JOBIDLIST
+        
         log_message "Resubmitting job: $Jobid , COUNTER nr.: $COUNTER"
         log_message "Sleep for $SLEEPTIME hours before checking the status..."
 
