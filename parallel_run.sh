@@ -56,9 +56,27 @@ do_nvt(){
     Jobid=$(sbatch --parsable $slurm_file)
     log_message "Submitted job for: $dir -> $Jobid \n"
     echo -e "Submitted job for: $dir -> $Jobid \n"
-
 }
-export -f mk_structure mk_index do_em do_nvt log_message
+
+do_npt(){
+    local dir="$1"Oda
+    local JobName="$1"NoO
+    local slurm_file="slurm.npt"
+    cd "$dir" || exit 1
+    echo "Submitting job for $dir ..."
+    cp ../npt.mdp .
+    cp ../$slurm_file .
+    sed -i "s/^#SBATCH --job-name.*/#SBATCH --job-name $JobName/" "$slurm_file"
+    sed -i "s#STRUCTURE=.*#STRUCTURE=./2_nvt_afterEm1/nvt.gro#" "$slurm_file"
+    sed -i "s#LABEL=.*#LABEL=afterNvt#" "$slurm_file"
+    
+    Jobid=$(sbatch --parsable $slurm_file)
+    log_message "Submitted job for: $dir -> $Jobid \n"
+    echo -e "Submitted job for: $dir -> $Jobid \n"
+}
+
+
+export -f mk_structure mk_index do_em do_nvt do_npt log_message
 
 case $1 in
 'structure')
@@ -73,7 +91,10 @@ case $1 in
 'nvt')
     parallel do_nvt ::: "${dirs[@]}"
     ;;
+'npt')
+    parallel do_npt ::: "${dirs[@]}"
+    ;;
 *)
-    echo "Invalid argument. Please use 'structure', 'index', 'em', 'nvt'."
+    echo "Invalid argument. Please use 'structure', 'index', 'em', 'nvt', or 'npt'."
     ;;
 esac
