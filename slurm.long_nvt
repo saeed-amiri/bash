@@ -20,7 +20,7 @@ module load gromacs/2021.2-plumed
 STRCTURE=../3_npt_afterNvt/npt.gro
 
 # Style of run
-STYLE=nvt
+STYLE=npt
 
 # Name of the simulation
 LABEL=after3Npt
