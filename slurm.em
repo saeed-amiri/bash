@@ -36,7 +36,11 @@ TOPFILE=./topol.top
 TPRFILE=$STYLE.tpr
 
 # Directory to move all the data to it after job done
-DIR="$STYLE"_"$LABEL"
+if [[ -n "$LABEL" ]]; then
+    DIR="$STYLE"_"$LABEL"
+else
+    DIR="$STYLE"
+fi
 
 # Mail info, if True will send email
 if [ -f $TPRFILE ]; then
