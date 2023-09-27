@@ -142,7 +142,7 @@ while [ ! -f "$CHECKFILE" ]; do
         # Submit the continuation job and get the Jobid
         Jobid=$(sbatch --parsable slurm.continue)
 
-        echo -e "$COUNTER\t$Jobid_init" >> $JOBIDLIST
+        echo -e "$COUNTER\t$Jobid" >> $JOBIDLIST
         
         log_message "Resubmitting job: $Jobid , COUNTER nr.: $COUNTER"
         log_message "Sleep for $SLEEPTIME hours before checking the status..."
