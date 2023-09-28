@@ -119,20 +119,24 @@ else
     exit 0
 fi
 
-# Submit the initial job and get the Jobid
-Jobid_init=$(sbatch --parsable slurm.long_nvt)
+if [[ ! -f "npt.tpr" ]]; then
+    # Submit the initial job and get the Jobid
+    Jobid_init=$(sbatch --parsable slurm.long_nvt)
 
-# Log the initial job submission details
-log_message "Submit nvt job, with jobid: $Jobid_init"
-log_message "Sleep for $SLEEPTIME hours before checking the status..."
+    # Log the initial job submission details
+    log_message "Submit nvt job, with jobid: $Jobid_init"
+    log_message "Sleep for $SLEEPTIME hours before checking the status..."
 
-echo -e "0\t$Jobid_init" > $JOBIDLIST
+    echo -e "0\t$Jobid_init" > $JOBIDLIST
 
-# Sleep for 13 hours before checking the job status
-sleep $SLEEPTIME
+    # Sleep for 13 hours before checking the job status
+    sleep $SLEEPTIME
 
-check_Jobid "$Jobid_init"
-check_status "$Jobid_init"
+    check_Jobid "$Jobid_init"
+    check_status "$Jobid_init"
+else
+    log_message "\n\t\tSomething happend!\n"
+fi
 
 # Loop for resubmission
 while [ ! -f "$CHECKFILE" ]; do
