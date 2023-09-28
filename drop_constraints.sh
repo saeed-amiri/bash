@@ -5,10 +5,10 @@
 # Set variables
 REPORT="./RESUBMIT_REPORT"
 JobName="DropCo"
-CHECKFILE=nvt.gro
-SLURM_FILE=slurm.drop_nvt
-MDP_FILE=nvt.mdp
-TOP_FILE=topol.top
+CHECKFILE="nvt.gro"
+SLURM_FILE="slurm.drop_nvt"
+MDP_FILE="nvt.mdp"
+TOP_FILE="topol.top"
 SLEEPTIME=40m
 SNOOZE=20m
 
@@ -93,7 +93,7 @@ check_status() {
 # Initialize constraint
 INITIAL_FORCE=5000
 # Dropping value
-DROP_STEP=1000
+DROP_STEP=2000
 
 # Gradually decrease constraints
 while [ "$INITIAL_FORCE" -gt "$DROP_STEP" ]; do
