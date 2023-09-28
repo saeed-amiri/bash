@@ -65,6 +65,8 @@ check_status() {
     elif [ "$status_variable" == "TIMEOUT" ]; then
         local LastStep
         local SlurmFile=slurm-$Jobid.out
+        [ -s "$SlurmFile" ] || log_message "The file $SlurmFile is not recognized!\n"
+        log_message "Reading $SlurmFile\n"
         LastStep=$(tac "$SlurmFile" |grep "^imb" |head -2)
         log_message "Job: $Jobid continued as expected."
         log_message "Last two MD steps are:\n\t$LastStep\n"
