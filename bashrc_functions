@@ -1,0 +1,144 @@
+# .bashrc
+
+# Source global definitions
+if [ -f /etc/bashrc ]; then
+	. /etc/bashrc
+fi
+
+# Uncomment the following line if you don't like systemctl's auto-paging feature:
+# export SYSTEMD_PAGER=
+
+# User specific aliases and functions
+#-Module for phono3py------------#
+module load anaconda3/2020.11   
+module load intel/18.0.5
+
+
+alias ..='cd ..'
+alias -- -='cd -'
+
+GROMACS(){
+	module load intel
+	module load impi
+	module load gromacs/2021.4-plumed
+}
+
+# Define a function to pull changes from origin and copy files
+copy_bashes() {
+    local source_dir="XXXXXXXXXXX/MyScripts/bash"
+    local destination_dir=`pwd`  # The destination directory will be the first argument	
+
+    # Navigate to the source directory
+    cd "$source_dir" || return
+
+    # Pull changes from origin's master branch
+    if ! git pull origin master; then
+        echo "Error: Unable to pull changes from origin's master branch."
+        return 1
+    fi
+    cd $destination_dir
+
+    # List of files to copy
+    files_to_copy=(
+        "run.sh"
+	"slurm.em"
+	"slurm.nvt"
+	"slurm.npt"
+	"slurm.continue"
+	"slurm.long_nvt"
+	"submit.sh"
+    )
+
+    # Copy each file to the destination directory
+    for file in "${files_to_copy[@]}"; do
+        cp "$source_dir/$file" "$destination_dir"
+        if [ $? -eq 0 ]; then
+            echo "Copied $file from $source_dir"
+        else
+            echo "Error: Failed to copy $file to $destination_dir"
+        fi
+    done
+}
+
+copy_drops() {
+    local source_dir="XXXXXXXXXXX/MyScripts/bash"
+    local destination_dir=`pwd`  # The destination directory will be the first argument
+
+    # Navigate to the source directory
+    cd "$source_dir" || return
+
+    # Pull changes from origin's master branch
+    if ! git pull origin master; then
+        echo "Error: Unable to pull changes from origin's master branch."
+        return 1
+    fi
+    cd $destination_dir
+
+    # List of files to copy
+    files_to_copy=(
+        "slurm.drop_nvt"
+        "drop_constraints.sh"
+	"run_drop.sh"
+    )
+
+    # Copy each file to the destination directory
+    for file in "${files_to_copy[@]}"; do
+        cp "$source_dir/$file" "$destination_dir"
+        if [ $? -eq 0 ]; then
+            echo "Copied $file from $source_dir"
+        else
+            echo "Error: Failed to copy $file to $destination_dir"
+        fi
+    done
+}
+
+function updateMyScripts() {
+    # Save the current directory
+    local current_dir=$(pwd)
+
+    # Define the path to the MyScripts directory
+    local my_scripts_dir="XXXXXXXXXXX/MyScripts"
+
+    # Change to the MyScripts directory
+    cd "$my_scripts_dir"
+
+    # Loop through all subdirectories and perform git pull
+    for dir in */; do
+        cd "$dir"
+        if [ -d ".git" ]; then
+            echo "Updating $dir..."
+            git pull origin
+	    echo -e "\n"
+        else
+            echo -e "$dir is not a git repository. Skipping...\n"
+        fi
+        cd ..
+    done
+
+    # Return to the original directory
+    cd "$current_dir"
+}
+
+function RTAIL() {
+    for job in $(squeue -u $(whoami) | grep RUN | awk 'NR>1 {print $1}'); do
+        dir=$(scontrol show job $job | grep -oP 'WorkDir=\K\S+')
+        echo "$job -> $dir:"
+        tail -1 $dir/slurm-"$job".out
+        echo ""
+    done
+}
+
+function GETTAIL() {
+    local  job=$1
+    local dir=$(scontrol show job $job | grep -oP 'WorkDir=\K\S+')
+    echo "$job -> $dir:"
+    tail -1 $dir/slurm-"$job".out
+    echo ""
+}
+
+alias RUN="date;sacct|grep RUN|grep stan|cat -n"
+alias PEN="date;sacct|grep PEN|grep stan|cat -n"
+alias PROJECT="cd XXXXXXXXXXX"
+alias CURRENT="cd XXXXXXXXXXX/PRE_DFG_18Oct23"
+alias RTIME="date; squeue -u hbpsaeed | awk 'NR==1{print \$1, \$3, \$6, \$7, \$8} NR>1{print NR-1, \$1, \$3, \$6, \$7, \$8}'"
+

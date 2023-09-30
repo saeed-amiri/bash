@@ -74,7 +74,7 @@ do_em() {
 
 do_nvt(){
     local dir="$1"Oda
-    local JobName="$1"NoO
+    local JobName="$1"WPO
     local slurm_file="slurm.nvt"
     cd "$dir" || exit 1
     log_message "Submitting job for $dir ..."
@@ -91,27 +91,65 @@ do_nvt(){
 
 do_npt(){
     local dir="$1"Oda
-    local JobName="$1"NoO
+    local JobName="$1"WPO
     local slurm_file="slurm.npt"
-    cd "$dir" || exit 1
+    local strucDir="2_nvt_afterEm"
+    local nodesNr=9
+    local tasksNr
+    tasksNr=$(( $nodesNr * 96 ))
+    pushd "$dir" || exit 1
     log_message "Submitting job for $dir ..."
     cp ../npt.mdp .
     cp ../$slurm_file .
-    sed -i "s/^#SBATCH --job-name.*/#SBATCH --job-name $JobName/" "$slurm_file"
-    sed -i "s#STRUCTURE=.*#STRUCTURE=./2_nvt_afterEm1/nvt.gro#" "$slurm_file"
-    sed -i "s#LABEL=.*#LABEL=afterNvt#" "$slurm_file"
-    
-    Jobid=$(sbatch --parsable $slurm_file)
-    log_message "Submitted job for: $dir -> $Jobid \n"
-    echo -e "Submitted job for: $dir -> $Jobid \n"
+    if [[ -d "$strucDir" ]]; then
+        sed -i "s/^#SBATCH --nodes.*/#SBATCH --nodes=$nodesNr/" "$slurm_file"
+        sed -i "s/^#SBATCH --ntasks.*/#SBATCH --ntasks=$tasksNr/" "$slurm_file"
+        sed -i "s/^#SBATCH --job-name.*/#SBATCH --job-name $JobName/" "$slurm_file"
+        sed -i "s#STRUCTURE=.*#STRUCTURE=./$strucDir/nvt.gro#" "$slurm_file"
+        sed -i "s#LABEL=.*#LABEL=afterNvt#" "$slurm_file"
+
+        Jobid=$(sbatch --parsable $slurm_file)
+        log_message "Submitted job for: $dir -> $Jobid \n"
+        echo -e "Submitted job for: $dir -> $Jobid \n"
+    else
+        echo "$strucDir does not exsit in $(pwd)"
+    fi
+}
+
+drop_restraints() {
+    local dir="$1"Oda
+    local JobName="$1"WPO
+    local slurm_file="slurm.nvt"
+    local strucDir="3_npt_afterNvt/npt.gro"
+    local nodesNr=9
+    local tasksNr
+    tasksNr=$(( $nodesNr * 96 ))
+    pushd "$dir" || exit 1
+    log_message "Submitting job for $dir ..."
+    cp ../nvt.mdp .
+    cp ../$slurm_file .
+    if [[ -f "$strucDir" ]]; then
+        sed -i "s/^#SBATCH --nodes.*/#SBATCH --nodes=$nodesNr/" "$slurm_file"
+        sed -i "s/^#SBATCH --ntasks.*/#SBATCH --ntasks=$tasksNr/" "$slurm_file"
+        sed -i "s/^#SBATCH --job-name.*/#SBATCH --job-name $JobName/" "$slurm_file"
+        sed -i "s#STRUCTURE=.*#STRUCTURE=./$strucDir#" "$slurm_file"
+        sed -i "s#LABEL=.*#LABEL=DropRestraintsafterNvt#" "$slurm_file"
+
+        Jobid=$(sbatch --parsable $slurm_file)
+        log_message "Submitted job for: $dir -> $Jobid \n"
+        echo -e "Submitted job for: $dir -> $Jobid \n"
+    else
+        echo "$strucDir does not exsit in $(pwd)"
+    fi
+
 }
 
 
-export -f mk_structure mk_index do_em do_nvt do_npt log_message mk_parent_dirs prepare_topol
+export -f mk_structure mk_index do_em do_nvt do_npt log_message mk_parent_dirs prepare_topol drop_restraints
 
 # Define the list of directories
 # dirs=( "test" )
-dirs=( "5" "10" "15" "20" "200" "proUnpro" )
+dirs=( "10" "15" "20" "200" "proUnpro" )
 
 case $1 in
 'mk_parents')
@@ -135,7 +173,10 @@ case $1 in
 'npt')
     parallel do_npt ::: "${dirs[@]}"
     ;;
+'drop')
+    parallel drop_restraints ::: "${dirs[@]}"
+    ;;
 *)
-    echo "Invalid argument. Please use 'structure', 'index', 'em', 'nvt', or 'npt'."
+    echo "Invalid argument. Please use 'structure', 'mk_parents',topol, 'index', 'em', 'nvt', 'npt', or 'drop'."
     ;;
 esac
