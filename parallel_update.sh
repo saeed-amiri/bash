@@ -20,7 +20,7 @@ prepare_dirs(){
     
     parentDir="$1"Oda
     cd $parentDir || echo -e "$dir exsits\n"
-    updateDir="updateAfterDropConstraints"
+    updateDir="updateByAverage"
     dirCount=$(find . -maxdepth 1 -type d -regex './[0-9].*' | wc -l)
     count=1
 
@@ -69,10 +69,13 @@ function update_files(){
     parentDir="$1"Oda
     local JobName="$1"Upd
     pushd "$parentDir" || exit 1
-    updateDir=$(find . -type d -name '*updateAfterDropConstraints' -print -quit)
+    updateDir=$(find . -type d -name '*updateByAverage' -print -quit)
     pushd "$updateDir" || exit 1
     slurmFile='slurm.update'
     sed -i "s/^#SBATCH --job-name.*/#SBATCH --job-name $JobName/" "$slurmFile"
+    update="update_param"
+    sed -i "s/^@LINE=.*/@LINE=DOUBLELOWERBOUND/" "$update"
+    sed -i '26 a@NUMAPTES=-1' "$update"
 }
 
 function submit_jobs() {
@@ -134,7 +137,7 @@ function update_topol() {
     parentDir="$1"Oda
     pushd "$parentDir" || exit 1
     
-    sed -i '1 ; atopology after updating protonation' topol.top
+    sed -i '1 a; atopology after updating protonation' topol.top
 
     # Replace the line
     sed -i 's|#include "../APT_COR.itp"|#include "./APT_COR.itp"|' topol.top
@@ -149,8 +152,8 @@ export -f update_topol
 export REPORT
 
 # Define the list of directories
-dirs=( "5" )
-# dirs=( "10" "15" "20" "50" "100" "150" "200" )
+# dirs=( "5" )
+dirs=( "5", "10" "15" "20" "50" "100" "150" "200" )
 
 case $1 in
     'prepare')
