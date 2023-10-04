@@ -2,7 +2,7 @@
 
 REPORT="./UPDATE_REPORT"
 if [[ ! -f $REPORT ]]; then
-    touch $REPORT
+    touch "$REPORT"
 fi
 
 # Function to log messages to the REPORT file
@@ -10,16 +10,17 @@ log_message() {
     echo -e "[$(date '+%Y-%m-%d %H:%M:%S')] $1" >> "$REPORT"
 }
 
-prepare_dirs(){
+prepare_dirs() {
     local parentDir
     local updateDir
     local groDir
     local dirCount
     local count
     local filesToCopy
-    
-    parentDir="$1"Oda
-    cd $parentDir || echo -e "$dir exsits\n"
+
+    parentDir="${1}Oda"
+    cd "$parentDir" || { echo -e "$dir exists\n"; return; }
+
     updateDir="updateByAverage"
     dirCount=$(find . -maxdepth 1 -type d -regex './[0-9].*' | wc -l)
     count=1
@@ -34,11 +35,12 @@ prepare_dirs(){
         done
         updateDir="${count}_${updateDir}"
     fi
-    
-    mkdir "$updateDir" || echo " $updateDir directory exsit!"
-    
+
+    mkdir "$updateDir" || { echo "$updateDir directory exists!"; return; }
+
     groDir=$(find . -type d -name '*DropRestraintsafterNvt' -print -quit)
     echo -e "\n$groDir\n"
+
     # List of files to copy
     filesToCopy=(
         "index.ndx"
@@ -61,8 +63,7 @@ prepare_dirs(){
     done
 }
 
-
-function update_files(){
+update_files() {
     local parentDir
     local updateDir
     
@@ -76,9 +77,50 @@ function update_files(){
     update="update_param"
     sed -i "s/^@LINE=.*/@LINE=DOUBLELOWERBOUND/" "$update"
     sed -i '26 a@NUMAPTES=-1' "$update"
+    popd || exit
 }
 
-function submit_jobs() {
+update_slurm() {
+    local parentDir
+    local updateDir
+    local slurmFile
+    local getData
+    local updateGro
+    
+    parentDir="$1"Oda
+    pushd "$parentDir" || exit 1
+    updateDir=$(find . -type d -name '*updateByAverage' -print -quit)
+    pushd "$updateDir" || exit 1
+    slurmFile='slurm.update'
+    getData='get_data.py'
+    updateGro='update_pdb_itp'
+    sed -i "/python/s|$updateGro|$getData|" "$slurmFile"
+    popd || exit
+}
+
+split_trr() {
+    local parentDir
+    local updateDir
+    local tprDir
+    local tprFile
+    local TIME_BETWEEN_FRAMES
+    parentDir="$1"Oda
+    pushd "$parentDir" || exit 1
+    updateDir=$(find . -type d -name '*updateByAverage' -print -quit)
+    pushd "$updateDir" || exit 1
+    tprDir=$(find ../ -type d -name '*DropRestraintsafterNvt' -print -quit)
+    tprFile="$tprDir"/nvt.tpr
+    trrFile="$tprDir"/nvt.trr
+    TOTAL_FRAMES=11
+    TIME_BETWEEN_FRAMES=200
+
+    for ((i=0; i<="$TOTAL_FRAMES"; i++)); do
+        echo -e "System\n" | gmx_mpi trjconv -f "$trrFile" -s "$tprFile" -dump $(($i*TIME_BETWEEN_FRAMES)) -o frame_$i.gro
+    done
+    popd || exit
+}
+
+submit_jobs() {
     local parentDir
     local updateDir
     
@@ -88,9 +130,46 @@ function submit_jobs() {
     pushd "$updateDir" || exit 1
     slurmFile='slurm.update'
     sbatch "$slurmFile"
+    popd || exit
 }
 
-function back_up() {
+get_data() {
+    local parentDir
+    local updateDir
+    local TOTAL_FRAMES
+    
+    parentDir="$1"Oda
+    pushd "$parentDir" || exit 1
+    updateDir=$(find . -type d -name '*updateByAverage' -print -quit)
+    pushd "$updateDir" || exit 1
+    TOTAL_FRAMES=11
+    for i in $(seq 0 "$TOTAL_FRAMES"); do
+        python /scratch/projects/hbp00076/MyScripts/update_structure/codes/get_data.py frame_"$i".gro
+    done
+    popd || exit
+}
+
+get_pro_numbers() {
+    local parentDir
+    local updateDir
+
+    parentDir="$1"Oda
+    pushd "$parentDir" || exit 1
+    updateDir=$(find . -type d -name '*updateByAverage' -print -quit)
+    pushd "$updateDir" || exit 1
+    local outputFile="combined.log"
+    rm "$outputFile" || return
+    touch "$outputFile"
+    for logfile in get_data.log.*; do
+        proNr=$(grep "The number of unprotonated aptes in water: \`APT\` is" "$logfile" | \
+                awk -F "The number of unprotonated aptes in water: \`APT\` is " '{print $2}')
+        angle=$(grep "The contact angle is:" "$logfile")
+        echo "$logfile: APTES: $proNr, $angle " >> "$outputFile"
+    done
+    popd || exit
+}
+
+back_up() {
     local parentDir
     local backDir
 
@@ -98,7 +177,7 @@ function back_up() {
     pushd "$parentDir" || exit 1
 
     backDir="structureBeforeUpdate"
-    mkdir $backDir
+    mkdir "$backDir"
     
     # List of files to copy
     filesToMove=(
@@ -118,42 +197,44 @@ function back_up() {
             log_message "Failed in preparing update dir in: $(pwd)\n"
         fi
     done
+    popd || exit
 }
 
-function copy_updated() {
+copy_updated() {
     local parentDir
 
     parentDir="$1"Oda
     pushd "$parentDir" || exit 1
-    updateDir=$(find . -type d -name '*updateAfterDropConstraints' -print -quit)
-    cp $updateDir/topol_updated.top topol.top
-    cp $updateDir/APT_COR_updated.itp APT_COR.itp
-    cp $updateDir/updated_system.gro system.gro
+    updateDir=$(find . -type d -name '*updateByAverage' -print -quit)
+    cp "$updateDir"/topol_updated.top topol.top
+    cp "$updateDir"/APT_COR_updated.itp APT_COR.itp
+    cp "$updateDir"/updated_system.gro system.gro
+    popd || exit
 }
 
-function update_topol() {
+update_topol() {
     local parentDir
 
     parentDir="$1"Oda
     pushd "$parentDir" || exit 1
     
-    sed -i '1 a; atopology after updating protonation' topol.top
+    sed -i '1 a; topology after updating protonation' topol.top
 
     # Replace the line
     sed -i 's|#include "../APT_COR.itp"|#include "./APT_COR.itp"|' topol.top
 
-    # Reove the block of lines
+    # Remove the block of lines
     sed -i '/; Restraints on NP/,/#endif/d' topol.top
-
+    popd || exit
 }
 
 export -f log_message prepare_dirs update_files submit_jobs back_up copy_updated
-export -f update_topol
+export -f update_topol update_slurm split_trr get_data get_pro_numbers
 export REPORT
 
 # Define the list of directories
 # dirs=( "5" )
-dirs=( "5", "10" "15" "20" "50" "100" "150" "200" )
+dirs=( "5" "10" "15" "20" "50" "100" "150" "200" )
 
 case $1 in
     'prepare')
@@ -161,6 +242,18 @@ case $1 in
     ;;
     'update')
         parallel update_files ::: "${dirs[@]}"
+    ;;
+    'upslurm')
+        parallel update_slurm ::: "${dirs[@]}"
+    ;;
+    'split')
+        parallel split_trr ::: "${dirs[@]}"
+    ;;
+    'getData')
+        parallel get_data ::: "${dirs[@]}"
+    ;;
+    'getPro')
+        parallel get_pro_numbers ::: "${dirs[@]}"
     ;;
     'submit')
         parallel submit_jobs ::: "${dirs[@]}"
@@ -174,14 +267,13 @@ case $1 in
     'update_topol')
         parallel update_topol ::: "${dirs[@]}"
     ;;
-
     'delete')
         # find . -type d -name "updateSuffix" -exec rm -r {} +
         echo -e "\n\t\tDo it manually@@@!!!!!!\n"
     ;;
     *)
-        echo "Invalid argument. Please use 'prepare', 'delete', 'em', 'nvt', or 'npt'."
+        echo "Invalid argument. Please use 'prepare', 'update', 'upslurm', 'split', \
+              'getData', 'getPro', 'submit', 'backup', 'copy_updated', 'update_topol', \
+              'delete'"
     ;;
 esac
-
-
