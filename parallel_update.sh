@@ -77,7 +77,7 @@ update_files() {
     update="update_param"
     sed -i "s/^@LINE=.*/@LINE=DOUBLELOWERBOUND/" "$update"
     sed -i '26 a@NUMAPTES=-1' "$update"
-    popd || exit
+    popd || exit 1
 }
 
 update_slurm() {
@@ -95,7 +95,7 @@ update_slurm() {
     getData='get_data.py'
     updateGro='update_pdb_itp'
     sed -i "/python/s|$updateGro|$getData|" "$slurmFile"
-    popd || exit
+    popd || exit 1
 }
 
 split_trr() {
@@ -117,7 +117,7 @@ split_trr() {
     for ((i=0; i<="$TOTAL_FRAMES"; i++)); do
         echo -e "System\n" | gmx_mpi trjconv -f "$trrFile" -s "$tprFile" -dump $(($i*TIME_BETWEEN_FRAMES)) -o frame_$i.gro
     done
-    popd || exit
+    popd || exit 1
 }
 
 submit_jobs() {
@@ -130,7 +130,7 @@ submit_jobs() {
     pushd "$updateDir" || exit 1
     slurmFile='slurm.update'
     sbatch "$slurmFile"
-    popd || exit
+    popd || exit 1
 }
 
 get_data() {
@@ -146,7 +146,7 @@ get_data() {
     for i in $(seq 0 "$TOTAL_FRAMES"); do
         python /scratch/projects/hbp00076/MyScripts/update_structure/codes/get_data.py frame_"$i".gro
     done
-    popd || exit
+    popd || exit 1
 }
 
 get_pro_numbers() {
@@ -166,7 +166,7 @@ get_pro_numbers() {
         angle=$(grep "The contact angle is:" "$logfile")
         echo "$logfile: APTES: $proNr, $angle " >> "$outputFile"
     done
-    popd || exit
+    popd || exit 1
 }
 
 back_up() {
@@ -197,7 +197,7 @@ back_up() {
             log_message "Failed in preparing update dir in: $(pwd)\n"
         fi
     done
-    popd || exit
+    popd || exit 1
 }
 
 copy_updated() {
@@ -209,7 +209,7 @@ copy_updated() {
     cp "$updateDir"/topol_updated.top topol.top
     cp "$updateDir"/APT_COR_updated.itp APT_COR.itp
     cp "$updateDir"/updated_system.gro system.gro
-    popd || exit
+    popd || exit 1
 }
 
 update_topol() {
@@ -225,7 +225,7 @@ update_topol() {
 
     # Remove the block of lines
     sed -i '/; Restraints on NP/,/#endif/d' topol.top
-    popd || exit
+    popd || exit 1
 }
 
 export -f log_message prepare_dirs update_files submit_jobs back_up copy_updated
