@@ -3,6 +3,7 @@
 # To analysing simple things with gromacs itself
 
 get_density(){
+    # get the density of the systems by gromacs itself.
     local dir="$1"Oda
     local pwDir="density"
     local tmpFile='density.xvg'
@@ -45,6 +46,7 @@ get_density(){
 }
 
 get_tension() {
+    # Get tension of the system by gromacs itself
     local parentDir
     local dir="$1"Oda
     local Oda="$1"
