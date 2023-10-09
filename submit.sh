@@ -67,7 +67,7 @@ check_status() {
         local SlurmFile=slurm-$Jobid.out
         [ -s "$SlurmFile" ] || log_message "The file $SlurmFile is not recognized!\n"
         log_message "Reading $SlurmFile\n"
-        LastStep=$(tac "$SlurmFile" |grep "^imb" |head -2)
+        LastStep=$(tac "$SlurmFile" |grep "^imb" |head -1)
         log_message "Job: $Jobid continued as expected."
         log_message "Last two MD steps are:\n\t$LastStep\n"
 
