@@ -3,7 +3,6 @@
 # To analysing simple things with gromacs itself
 
 get_density(){
-    # get the density of the systems by gromacs itself.
     local dir="$1"Oda
     local pwDir="density"
     local tmpFile='density.xvg'
@@ -11,18 +10,23 @@ get_density(){
     local titleLine
     local titleTmp
     local title
-    
+    if [[ $1 == "noOdaNp" ]]; then
+        dir="$1"
+    fi
     pushd "$dir" || exit 1
-    mkdir "$pwDir"
+    if [[ ! -d "$pwDir" ]]; then
+        mkdir "$pwDir"
+    fi
     pushd "$pwDir" || exit 1
 
-    sourceDir=$(find .. -maxdepth 1 -type d -name '*4_npt_afterNpt3Long300ns' -print -quit)
+    sourceDir=$(find .. -maxdepth 1 -type d -name '*after*Long300ns' -print -quit)
+    echo "SOURCEDIR IS    $sourceDir"
     
     if [ -f $tmpFile ]; then
         rm $tmpFile
     fi
     
-    local startFrame=200000000  # Variable to specify the starting frame
+    local startFrame=200000  # Variable to specify the starting frame
     
     # SOL: 2
     # CLA: 5
@@ -46,7 +50,6 @@ get_density(){
 }
 
 get_tension() {
-    # Get tension of the system by gromacs itself
     local parentDir
     local dir="$1"Oda
     local Oda="$1"
@@ -65,8 +68,8 @@ get_tension() {
     pushd $dir || exit 1
     mkdir "$pwDir"
     pushd "$pwDir" || exit
+    
     sourceDir=$(find .. -maxdepth 1 -type d -name '*afterNpt*Long300ns' -print -quit)
-
     local startFrame=2000  # Variable to specify the starting frame
     gamma=$(echo "42"| gmx_mpi energy -f "$sourceDir"/npt.edr -s "$sourceDir"/npt.tpr -o "$tmpFile" -b "$startFrame" | \
                  grep '#Surf'|awk -F ' ' '{print $2}') 
@@ -75,7 +78,8 @@ get_tension() {
 
 export -f get_density get_tension
 
-dirs=("noOdaNp" "5" "10" "15" "20" "50" "100" "150" "200")
+# dirs=( "5" )
+dirs=("noOdaNp" "5" "10" "15" "20" "50" "100" "150" "200" "300")
 
 case $1 in
     'density')
