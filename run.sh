@@ -1,5 +1,6 @@
 #! /bin/bash
 
+echo -e "\n"
 echo `date` >> nohup.PID
 echo "hostname: $(hostname)" >> nohup.PID
 echo "submit $0 " >> nohup.PID
