@@ -118,8 +118,7 @@ unwrap_traj(){
     local sourceDir
     local pwDir="com_traj"
     local dirCount
-
-    pushd $dir || exist 1
+    pushd $dir || exit 1
 
     dirCount=$(find . -maxdepth 1 -type d -regex './[0-9].*' | wc -l)
     local count=1
@@ -136,16 +135,84 @@ unwrap_traj(){
     mkdir $pwDir || exit 1
     pushd $pwDir || exit 1
     sourceDir=$(find .. -maxdepth 1 -type d -name '*after*UpAveLong300ns' -print -quit)
+    cp "$sourceDir"/topol.top .
     for structre in gro trr; do
         echo 0 | gmx_mpi trjconv -s "$sourceDir"/npt.tpr -f "$sourceDir"/npt."$structre" -o unwrap."$structre" -pbc whole
     done
     popd
 }
 
-export -f get_density get_tension get_com_plumed unwrap_traj
+get_frames() {
+    local dir="$1"Oda
+    local pwDir
+    local parentDir
+    local jobName="$1"Ana
+    local slurmName
+    local slurmFile
+    slurmName="slurm.frames"
+    parentDir=$(pwd)
 
-# dirs=( "5" )
-dirs=( "5" "15" "20" "200" )
+    pushd $dir || exit 1
+
+    pwDir=$(find . -maxdepth 1 -type d -name '*com_traj' -print -quit)
+    pushd "$pwDir" || exit 1
+    slurmFile=$(find $parentDir -type f -name $slurmName -print -quit)
+    cp "$slurmFile" .
+    sed -i "s/^#SBATCH --job-name.*/#SBATCH --job-name $jobName/" "$slurmName"
+    sbatch "$slurmName"
+    popd
+}
+
+get_rdf() {
+    local dir="$1"Oda
+    local pwDir
+    local sourceDir
+    local dirCount
+    pushd $dir || exit 1
+
+    pwDir='rdf'
+    dirCount=$(find . -maxdepth 1 -type d -regex './[0-9].*' | wc -l)
+    local count=1
+    if [[ $dirCount -eq 0 ]]; then
+        pwDir="${count}_${pwDir}"
+    else
+        for dir in */; do
+            if [[ $dir =~ ^[0-9] ]]; then
+                ((count++))
+            fi
+        done
+        pwDir="${count}_${pwDir}"
+    fi
+    mkdir "$pwDir" || exit 1
+    cd "$pwDir"
+
+    sourceDir=$(find .. -maxdepth 1 -type d -name '*after*UpAveLong300ns' -print -quit)
+
+    local referencePosition="whole_res_com"
+    local refResisue="APT"
+    local firstFrame=120000
+    local outRdf
+    local outCdf
+
+    local tragetResidues=( "ODN" "CLA" "POT" )
+    for res in "${tragetResidues[@]}"; do
+        outRdf=rdf_"$res".xvg
+        outCdf=cdf_"$res".xvg
+        gmx_mpi rdf -f "$sourceDir"/npt.trr \
+                    -s "$sourceDir"/npt.tpr \
+                    -selrpos "$referencePosition" \
+                    -ref "$res" \
+                    -b "$firstFrame" \
+                    -o $outRdf \
+                    -cn $outCdf
+    done
+    popd
+}
+
+export -f get_density get_tension get_com_plumed unwrap_traj get_frames get_rdf
+
+dirs=( "5" )
+# dirs=( "5" "15" "20" "200" )
 # dirs=( "zero" "5" "15" "20" "50" "100" "150" )
 
 case $1 in
@@ -156,11 +223,17 @@ case $1 in
         parallel get_tension ::: "${dirs[@]}"
     ;;
     'plumed')
-    parallel get_com_plumed ::: "${dirs[@]}"
+        parallel get_com_plumed ::: "${dirs[@]}"
     ;;
     'unwrap')
-    parallel unwrap_traj ::: "${dirs[@]}"
+        parallel unwrap_traj ::: "${dirs[@]}"
+    ;;
+    'frames')
+        parallel get_frames ::: "${dirs[@]}"
+    ;;
+    'rdf')
+        parallel get_rdf ::: "${dirs[@]}"
     ;;
     *)
-        echo -e "Invalid argument. Please use 'density', 'tension', 'plumed', 'unwrap' \n"
+        echo -e "Invalid argument. Please use 'density', 'tension', 'plumed', 'unwrap', 'frames', rdf \n"
 esac
