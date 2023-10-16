@@ -170,30 +170,35 @@ get_rdf() {
     local dirCount
     pushd $dir || exit 1
 
-    pwDir='rdf'
-    dirCount=$(find . -maxdepth 1 -type d -regex './[0-9].*' | wc -l)
-    local count=1
-    if [[ $dirCount -eq 0 ]]; then
-        pwDir="${count}_${pwDir}"
+    pwDir=$(find . -maxdepth 1 -type d -name '*rdf' -print -quit)
+    if [[ -z "$pwDir" ]]; then
+        pwDir='rdf'
+        dirCount=$(find . -maxdepth 1 -type d -regex './[0-9].*' | wc -l)
+        local count=1
+        if [[ $dirCount -eq 0 ]]; then
+            pwDir="${count}_${pwDir}"
+        else
+            for dir in */; do
+                if [[ $dir =~ ^[0-9] ]]; then
+                    ((count++))
+                fi
+            done
+            pwDir="${count}_${pwDir}"
+        fi
+        mkdir "$pwDir" || exit 1
     else
-        for dir in */; do
-            if [[ $dir =~ ^[0-9] ]]; then
-                ((count++))
-            fi
-        done
-        pwDir="${count}_${pwDir}"
+        echo "rdf directory exist"
     fi
-    mkdir "$pwDir" || exit 1
     cd "$pwDir"
 
     sourceDir=$(find .. -maxdepth 1 -type d -name '*after*UpAveLong300ns' -print -quit)
-
+ 
     local referencePosition="whole_res_com"
     local refResisue="APT"
     local firstFrame=120000
     local outRdf
     local outCdf
-
+ 
     local tragetResidues=( "ODN" "CLA" "POT" )
     for res in "${tragetResidues[@]}"; do
         outRdf=rdf_"$res".xvg
@@ -201,7 +206,8 @@ get_rdf() {
         gmx_mpi rdf -f "$sourceDir"/npt.trr \
                     -s "$sourceDir"/npt.tpr \
                     -selrpos "$referencePosition" \
-                    -ref "$res" \
+                    -ref "$refResisue" \
+                    -sel "$res" \
                     -b "$firstFrame" \
                     -o $outRdf \
                     -cn $outCdf
@@ -211,8 +217,8 @@ get_rdf() {
 
 export -f get_density get_tension get_com_plumed unwrap_traj get_frames get_rdf
 
-dirs=( "5" )
-# dirs=( "5" "15" "20" "200" )
+# dirs=( "5" )
+dirs=( "5" "15" "20" "100" "200" )
 # dirs=( "zero" "5" "15" "20" "50" "100" "150" )
 
 case $1 in
