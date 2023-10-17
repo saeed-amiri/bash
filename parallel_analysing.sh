@@ -51,7 +51,7 @@ get_tension() {
     local parentDir
     local dir="$1"Oda
     local Oda="$1"
-    local pwDir="tension"
+    local pwDir=""
     local sourceDir
     local tmpFile='tension.xvg'
     local logFile='tension.log'
@@ -63,13 +63,35 @@ get_tension() {
     fi
     touch $logFile
     pushd $dir || exit 1
-    mkdir "$pwDir"
-    pushd "$pwDir" || exit
-    sourceDir=$(find .. -maxdepth 1 -type d -name '*after*UpAveLong300ns' -print -quit)
+
+    pwDir=$(find . -maxdepth 1 -type d -name '*tension' -print -quit)
+    if [[ -z "$pwDir" ]]; then
+        pwDir='tension'
+        dirCount=$(find . -maxdepth 1 -type d -regex './[0-9].*' | wc -l)
+        count=1
+        if [[ $dirCount -eq 0 ]]; then
+            pwDir="${count}_${pwDir}"
+        else
+            for i in */; do
+                if [[ $i =~ ^[0-9] ]]; then
+                    ((count++))
+                fi
+            done
+            pwDir="${count}_${pwDir}"
+        fi
+        mkdir "$pwDir" || exit 1
+    else
+        echo "com directory exist"
+    fi
+    pushd $pwDir || exit 1
+
+    sourceDir=$(find .. -maxdepth 1 -type d -name '*after*Long300ns' -print -quit)
+
     if [[ -f "$parentDir"/"$logFile" ]]; then
         rm "$parentDir"/"$logFile"
     fi
-    local startFrame=2000  # Variable to specify the starting frame
+
+    local startFrame=120000  # Variable to specify the starting frame
     gamma=$(echo "43"| gmx_mpi energy -f "$sourceDir"/npt.edr -s "$sourceDir"/npt.tpr -o "$tmpFile" -b "$startFrame" | \
                  grep '#Surf'|awk -F ' ' '{print $2}') 
     echo "$dir $Oda $gamma" >> "$parentDir"/"$logFile"
@@ -79,24 +101,32 @@ get_com_plumed(){
     local parentDir
     local dir="$1"Oda
     local Oda="$1"
-    local pwDir="plumed_com"
+    local pwDir
+    local count
+    local dirCount
     local plumedInput="plumed.dat"
     pushd $dir || exit 1
     dirCount=$(find . -maxdepth 1 -type d -regex './[0-9].*' | wc -l)
 
-    count=1
-    if [[ $dirCount -eq 0 ]]; then
-        pwDir="${count}_${pwDir}"
+    pwDir=$(find . -maxdepth 1 -type d -name '*plumed_com' -print -quit)
+    if [[ -z "$pwDir" ]]; then
+        pwDir='plumed_com'
+        dirCount=$(find . -maxdepth 1 -type d -regex './[0-9].*' | wc -l)
+        count=1
+        if [[ $dirCount -eq 0 ]]; then
+            pwDir="${count}_${pwDir}"
+        else
+            for dir in */; do
+                if [[ $dir =~ ^[0-9] ]]; then
+                    ((count++))
+                fi
+            done
+            pwDir="${count}_${pwDir}"
+        fi
+        mkdir "$pwDir" || exit 1
     else
-        for dir in */; do
-            if [[ $dir =~ ^[0-9] ]]; then
-                ((count++))
-            fi
-        done
-        pwDir="${count}_${pwDir}"
+        echo "com directory exist"
     fi
-    
-    mkdir "$pwDir"|| { echo "$runDir directory exists!"; return; }
     pushd $pwDir || exit 1
 
     sourceDir=$(find .. -maxdepth 1 -type d -name '*after*UpAveLong300ns' -print -quit)
@@ -218,8 +248,8 @@ get_rdf() {
 export -f get_density get_tension get_com_plumed unwrap_traj get_frames get_rdf
 
 # dirs=( "5" )
-dirs=( "5" "15" "20" "100" "200" )
-# dirs=( "zero" "5" "15" "20" "50" "100" "150" )
+# dirs=( "5" "15" "20" "100" "200" )
+dirs=( "zero" "5" "10" "15" "20" "50" "100" "150" "200" )
 
 case $1 in
     'density')
