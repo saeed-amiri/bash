@@ -38,7 +38,7 @@ prepare_dirs() {
 
     mkdir "$updateDir" || { echo "$updateDir directory exists!"; return; }
 
-    groDir=$(find . -type d -name '*DropRestraintsafterNvt' -print -quit)
+    groDir=$(find . -type d -name '*afterNpt3NoRestraints' -print -quit)
     echo -e "\n$groDir\n"
 
     # List of files to copy
@@ -46,7 +46,7 @@ prepare_dirs() {
         "index.ndx"
         "topol.top"
         "../APT_COR.itp"
-        "$groDir/nvt.gro"
+        "$groDir/npt.gro"
         "../update_param"
         "../slurm.update"
     )
@@ -77,7 +77,7 @@ update_files() {
     update="update_param"
     sed -i "s/^@LINE=.*/@LINE=DOUBLELOWERBOUND/" "$update"
     sed -i '26 a@NUMAPTES=-1' "$update"
-    popd || exit 1
+    popd || exit
 }
 
 update_slurm() {
@@ -95,7 +95,7 @@ update_slurm() {
     getData='get_data.py'
     updateGro='update_pdb_itp'
     sed -i "/python/s|$updateGro|$getData|" "$slurmFile"
-    popd || exit 1
+    popd || exit
 }
 
 split_trr() {
@@ -108,16 +108,16 @@ split_trr() {
     pushd "$parentDir" || exit 1
     updateDir=$(find . -type d -name '*updateByAverage' -print -quit)
     pushd "$updateDir" || exit 1
-    tprDir=$(find ../ -type d -name '*DropRestraintsafterNvt' -print -quit)
-    tprFile="$tprDir"/nvt.tpr
-    trrFile="$tprDir"/nvt.trr
-    TOTAL_FRAMES=11
-    TIME_BETWEEN_FRAMES=200
+    tprDir=$(find ../ -type d -name '*afterNpt3NoRestraints' -print -quit)
+    tprFile="$tprDir"/npt.tpr
+    trrFile="$tprDir"/npt.trr
+    TOTAL_FRAMES=40
+    TIME_BETWEEN_FRAMES=100
 
     for ((i=0; i<="$TOTAL_FRAMES"; i++)); do
         echo -e "System\n" | gmx_mpi trjconv -f "$trrFile" -s "$tprFile" -dump $(($i*TIME_BETWEEN_FRAMES)) -o frame_$i.gro
     done
-    popd || exit 1
+    popd || exit
 }
 
 submit_jobs() {
@@ -130,7 +130,7 @@ submit_jobs() {
     pushd "$updateDir" || exit 1
     slurmFile='slurm.update'
     sbatch "$slurmFile"
-    popd || exit 1
+    popd || exit
 }
 
 get_data() {
@@ -140,13 +140,13 @@ get_data() {
     
     parentDir="$1"Oda
     pushd "$parentDir" || exit 1
-    updateDir=$(find . -type d -name '*updateByAverage' -print -quit)
+    updateDir=$(find . -type d -name '*check_afterNpt7' -print -quit)
     pushd "$updateDir" || exit 1
-    TOTAL_FRAMES=11
+    TOTAL_FRAMES=40
     for i in $(seq 0 "$TOTAL_FRAMES"); do
         python /scratch/projects/hbp00076/MyScripts/update_structure/codes/get_data.py frame_"$i".gro
     done
-    popd || exit 1
+    popd || exit
 }
 
 get_pro_numbers() {
@@ -158,7 +158,7 @@ get_pro_numbers() {
     updateDir=$(find . -type d -name '*updateByAverage' -print -quit)
     pushd "$updateDir" || exit 1
     local outputFile="combined.log"
-    rm "$outputFile" || return
+    rm "$outputFile"
     touch "$outputFile"
     for logfile in get_data.log.*; do
         proNr=$(grep "The number of unprotonated aptes in water: \`APT\` is" "$logfile" | \
@@ -166,7 +166,7 @@ get_pro_numbers() {
         angle=$(grep "The contact angle is:" "$logfile")
         echo "$logfile: APTES: $proNr, $angle " >> "$outputFile"
     done
-    popd || exit 1
+    popd || exit
 }
 
 back_up() {
@@ -197,7 +197,7 @@ back_up() {
             log_message "Failed in preparing update dir in: $(pwd)\n"
         fi
     done
-    popd || exit 1
+    popd || exit
 }
 
 copy_updated() {
@@ -209,7 +209,7 @@ copy_updated() {
     cp "$updateDir"/topol_updated.top topol.top
     cp "$updateDir"/APT_COR_updated.itp APT_COR.itp
     cp "$updateDir"/updated_system.gro system.gro
-    popd || exit 1
+    popd || exit
 }
 
 update_topol() {
@@ -225,7 +225,7 @@ update_topol() {
 
     # Remove the block of lines
     sed -i '/; Restraints on NP/,/#endif/d' topol.top
-    popd || exit 1
+    popd || exit
 }
 
 export -f log_message prepare_dirs update_files submit_jobs back_up copy_updated
@@ -233,8 +233,8 @@ export -f update_topol update_slurm split_trr get_data get_pro_numbers
 export REPORT
 
 # Define the list of directories
-# dirs=( "5" )
-dirs=( "5" "10" "15" "20" "50" "100" "150" "200" )
+dirs=( "zero" )
+# dirs=( "5" "10" "15" "20" "50" "100" "150" "200" )
 
 case $1 in
     'prepare')
