@@ -230,20 +230,93 @@ run_long() {
     local dir="$1"Oda
     local runDir
     pushd $dir || exit 1
-    runDir=$(find . -type d -name '*npt_afterEmUpAveLong300ns' -print -quit)
+    runDir=$(find . -type d -name '*npt_afterLong300nsFor100ns' -print -quit)
     pushd $runDir || exit 1
     bash run.sh
     popd || exit 1
 }
 
 
+prepare_production_run() {
+    local dir="$1"Oda
+    local JobName="$1"Oda
+    local slurmFile="slurm.long_run"
+    local slurmContinue="slurm.continue"
+    local submitFile="submit.sh"
+    local exsitDirs
+    local existing_integer
+    local largest_integer
+    local strucDir
+    local runDir
+    local nodesNr=12
+    local tasksNr
+    local groFile
+
+    tasksNr=$(( $nodesNr * 96 ))
+    pushd "$dir" || exit 1
+    log_message "Submitting job for $dir ..."
+    runDir="npt_afterLong300nsFor100ns"
+    exsitDirs=$( ls -d */ )
+
+    largest_integer=0
+    # Loop through the directory names
+    for dir_name in "${exsitDirs[@]}"; do
+        if [[ $dir_name =~ ^([0-9]+)_ ]]; then
+            existing_integer="${BASH_REMATCH[1]}"
+            if ((existing_integer > largest_integer)); then
+                largest_integer=$existing_integer
+            fi
+        fi
+    done
+    
+    ((largest_integer++))
+    runDir="${largest_integer}_${runDir}"
+
+    mkdir "$runDir" || { echo "$runDir directory exists!"; return; }
+    
+    pushd "$runDir" || exit 1
+    strucDir=$(find ../ -type d -name '*_npt_*Long300ns' -print -quit)
+    groFile="$strucDir"/npt.gro
+    # List of files to copy
+    filesToCopy=(
+        "../../run.sh"
+        "../../npt_prod.mdp"
+        "../../$slurmFile"
+        "../../$slurmContinue"
+        "../../$submitFile"
+        "../../D10_charmm.itp"
+        "../../ODAp_charmm.itp"
+        "$strucDir/topol.top"
+        "$strucDir/index.ndx"
+    )
+    # copy each file to the destination directory
+    for file in "${filesToCopy[@]}"; do
+        cp "$file" .
+        if [ $? -eq 0 ]; then
+            echo "cp $file for $(pwd)"
+        else
+            echo "Error: Failed to move $file to here"
+            log_message "Failed in preparing update dir in: $(pwd)\n"
+        fi
+    done
+
+    for slurm_file in $slurmFile $slurmContinue; do
+        sed -i "s/^#SBATCH --nodes.*/#SBATCH --nodes $nodesNr/" "$slurm_file"
+        sed -i "s/^#SBATCH --ntasks.*/#SBATCH --ntasks $tasksNr/" "$slurm_file"
+    done
+
+    sed -i "s#JobName=.*#JobName=$JobName#" "$submitFile"
+    sed -i "s#STRUCTURE=.*#STRUCTURE=$groFile#" "$slurmFile"
+    
+}
+
 export -f mk_structure mk_index do_em do_nvt do_npt log_message mk_parent_dirs prepare_topol drop_restraints
-export -f prepare_long_run run_long
+export -f prepare_long_run run_long prepare_production_run
 
 # Define the list of directories
 # dirs=( "10" "15" "20" "200" "proUnpro" )
-dirs=( "5" "50" )
-# dirs=( "10" "15" "20" "100" "150" "200" )
+# dirs=( "5" )
+dirs=( "10" "15" "20" "50" "100" "150" "200" "300" "zero" )
 
 case $1 in
 'mk_parents')
@@ -275,6 +348,9 @@ case $1 in
     ;;
 'runLong')
     parallel run_long ::: "${dirs[@]}"
+    ;;
+'prepareProd')
+    parallel prepare_production_run ::: "${dirs[@]}"
     ;;
 *)
     echo "Invalid argument. Please use 'structure', 'mk_parents',topol, 'index', 'em', 'nvt', 'npt', or 'drop'."

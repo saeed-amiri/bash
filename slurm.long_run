@@ -47,7 +47,7 @@ if [ ! -f "$STRUCTURE" ]; then
 fi
 
 
-gmx_mpi grompp -f $MDP_FILE.mdp \
+gmx_mpi grompp -f $MDP_FILE \
                -c $STRUCTURE \
                -r $STRUCTURE \
                -p $TOPFILE \
