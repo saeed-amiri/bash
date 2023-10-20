@@ -17,7 +17,7 @@ module load impi/2019.9
 module load gromacs/2021.2-plumed
 
 # input gro file for starting point
-STRCTURE=../3_npt_afterNvt/npt.gro
+STRUCTURE=../3_npt_afterNvt/npt.gro
 
 # Style of run
 STYLE=npt
@@ -41,15 +41,15 @@ cat "$MDP_FILE"
 echo -e "\n*******************\n"
 
 # check if the structure file exists
-if [ ! -f "$STRCTURE" ]; then
+if [ ! -f "$STRUCTURE" ]; then
     echo "Error: the structure file does not exist!"
     exit 1
 fi
 
 
-gmx_mpi grompp -f $STYLE.mdp \
-               -c $STRCTURE \
-               -r $STRCTURE \
+gmx_mpi grompp -f $MDP_FILE.mdp \
+               -c $STRUCTURE \
+               -r $STRUCTURE \
                -p $TOPFILE \
                -n ./index.ndx \
                -o $STYLE.tpr \
