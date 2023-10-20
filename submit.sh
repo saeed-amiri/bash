@@ -107,7 +107,7 @@ check_Jobid(){
 check_includes $TOPFILE
 
 # Make sure of the job name in slurm
-for slurm_file in slurm.long_nvt slurm.continue; do
+for slurm_file in slurm.long_run slurm.continue; do
     sed -i "s/^#SBATCH --job-name.*/#SBATCH --job-name $JobName/" "$slurm_file"
 done
 
