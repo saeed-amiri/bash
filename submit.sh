@@ -123,10 +123,10 @@ fi
 
 if [[ ! -f "npt.tpr" ]]; then
     # Submit the initial job and get the Jobid
-    Jobid_init=$(sbatch --parsable slurm.long_nvt)
+    Jobid_init=$(sbatch --parsable slurm.long_run)
 
     # Log the initial job submission details
-    log_message "Submit nvt job, with jobid: $Jobid_init"
+    log_message "Submit npt job, with jobid: $Jobid_init"
     log_message "Sleep for $SLEEPTIME hours before checking the status..."
 
     echo -e "0\t$Jobid_init" > $JOBIDLIST
