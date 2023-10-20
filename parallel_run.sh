@@ -55,6 +55,7 @@ mk_structure() {
 mk_index() {
     local dir="$1"Oda
     cd "$dir" || exit 1
+    rm index.ndx || return
     log_message "Creating index for $dir ..."
     { echo "9|10"; echo q; } | gmx_mpi make_ndx -f system.gro -o index.ndx
 }
@@ -63,11 +64,17 @@ do_em() {
     local dir="$1"Oda
     local JobName="$1"WPO
     local slurm_file="slurm.em"
+    local nodesNr=9
+    local tasksNr
+    tasksNr=$(( $nodesNr * 96 ))
     cd "$dir" || exit 1
     log_message "Submitting job for $dir ..."
     cp ../em.mdp .
     cp ../$slurm_file .
     sed -i "s/^#SBATCH --job-name.*/#SBATCH --job-name $JobName/" "$slurm_file"
+    sed -i "s/^#SBATCH --nodes.*/#SBATCH --nodes=$nodesNr/" "$slurm_file"
+    sed -i "s/^#SBATCH --ntasks.*/#SBATCH --ntasks=$tasksNr/" "$slurm_file"
+    sed -i "s#LABEL=.*#LABEL=afterAverageUpdate#" "$slurm_file"
     Jobid=$(sbatch --parsable $slurm_file)
     log_message "Submitted job for: $dir -> $Jobid \n"
 }
@@ -82,7 +89,6 @@ do_nvt(){
     cp ../$slurm_file .
     sed -i "s/^#SBATCH --job-name.*/#SBATCH --job-name $JobName/" "$slurm_file"
     sed -i "s#STRUCTURE=.*#STRUCTURE=./1_em/em.gro#" "$slurm_file"
-    sed -i "s#LABEL=.*#LABEL=after_em1#" "$slurm_file"
     
     Jobid=$(sbatch --parsable $slurm_file)
     log_message "Submitted job for: $dir -> $Jobid \n"
@@ -93,20 +99,21 @@ do_npt(){
     local dir="$1"Oda
     local JobName="$1"WPO
     local slurm_file="slurm.npt"
-    local strucDir="2_nvt_afterEm"
-    local nodesNr=9
+    local strucDir
+    local nodesNr=10
     local tasksNr
     tasksNr=$(( $nodesNr * 96 ))
     pushd "$dir" || exit 1
     log_message "Submitting job for $dir ..."
+    strucDir=$(find . -type d -name '*em_afterAverageUpdate' -print -quit)
     cp ../npt.mdp .
     cp ../$slurm_file .
     if [[ -d "$strucDir" ]]; then
         sed -i "s/^#SBATCH --nodes.*/#SBATCH --nodes=$nodesNr/" "$slurm_file"
         sed -i "s/^#SBATCH --ntasks.*/#SBATCH --ntasks=$tasksNr/" "$slurm_file"
         sed -i "s/^#SBATCH --job-name.*/#SBATCH --job-name $JobName/" "$slurm_file"
-        sed -i "s#STRUCTURE=.*#STRUCTURE=./$strucDir/nvt.gro#" "$slurm_file"
-        sed -i "s#LABEL=.*#LABEL=afterNvt#" "$slurm_file"
+        sed -i "s#STRUCTURE=.*#STRUCTURE=./$strucDir/em.gro#" "$slurm_file"
+        sed -i "s#LABEL=.*#LABEL=afterEmAverageUpdate#" "$slurm_file"
 
         Jobid=$(sbatch --parsable $slurm_file)
         log_message "Submitted job for: $dir -> $Jobid \n"
@@ -114,6 +121,7 @@ do_npt(){
     else
         echo "$strucDir does not exsit in $(pwd)"
     fi
+    popd
 }
 
 drop_restraints() {
@@ -144,12 +152,98 @@ drop_restraints() {
 
 }
 
+prepare_long_run() {
+    local dir="$1"Oda
+    local JobName="$1"WPO
+    local slurmFile="slurm.long_run"
+    local slurmContinue="slurm.continue"
+    local submitFile="submit.sh"
+    local dirCount
+    local strucDir
+    local runDir
+    local nodesNr=12
+    local tasksNr
+    local groFile
+    tasksNr=$(( $nodesNr * 96 ))
+    pushd "$dir" || exit 1
+    log_message "Submitting job for $dir ..."
+    runDir="npt_afterEmUpAveLong300ns"
+
+    dirCount=$(find . -maxdepth 1 -type d -regex './[0-9].*' | wc -l)
+    count=1
+    if [[ $dirCount -eq 0 ]]; then
+        runDir="${count}_${runDir}"
+    else
+        for dir in */; do
+            if [[ $dir =~ ^[0-9] ]]; then
+                ((count++))
+            fi
+        done
+        runDir="${count}_${runDir}"
+    fi
+    mkdir "$runDir" || { echo "$runDir directory exists!"; return; }
+    
+    pushd "$runDir" || exit 1
+    strucDir=$(find ../ -type d -name '*em_afterAverageUpdate' -print -quit)
+    groFile="$strucDir"/em.gro
+
+    # List of files to copy
+    filesToCopy=(
+        "../../run.sh"
+        "../../npt.mdp"
+        "../../$slurmFile"
+        "../../$slurmContinue"
+        "../../$submitFile"
+        "../../D10_charmm.itp"
+        "../../ODAp_charmm.itp"
+        "../APT_COR.itp"
+        "../topol.top"
+        "../index.ndx"
+    )
+
+    # copy each file to the destination directory
+    for file in "${filesToCopy[@]}"; do
+        cp "$file" .
+        if [ $? -eq 0 ]; then
+            echo "cp $file for $(pwd)"
+        else
+            echo "Error: Failed to move $file to here"
+            log_message "Failed in preparing update dir in: $(pwd)\n"
+        fi
+    done
+
+    for slurm_file in $slurmFile $slurmContinue; do
+        sed -i "s/^#SBATCH --nodes.*/#SBATCH --nodes $nodesNr/" "$slurm_file"
+        sed -i "s/^#SBATCH --ntasks.*/#SBATCH --ntasks $tasksNr/" "$slurm_file"
+    done
+
+    sed -i "s#JobName=.*#JobName=$JobName#" "$submitFile"
+    sed -i "s#STRUCTURE=.*#STRUCTURE=$groFile#" "$slurmFile"
+    sed -i 's|#include "../APT_COR.itp"|#include "./APT_COR.itp"|' topol.top
+    sed -i 's|#include "../D10_charmm.itp"|#include "./D10_charmm.itp"|' topol.top
+    sed -i 's|#include "../ODAp_charmm.itp"|#include "./ODAp_charmm.itp"|' topol.top
+    sed -i 's|../../../|../../../../|g' topol.top
+    popd || exit 1
+}
+
+run_long() {
+    local dir="$1"Oda
+    local runDir
+    pushd $dir || exit 1
+    runDir=$(find . -type d -name '*npt_afterEmUpAveLong300ns' -print -quit)
+    pushd $runDir || exit 1
+    bash run.sh
+    popd || exit 1
+}
+
 
 export -f mk_structure mk_index do_em do_nvt do_npt log_message mk_parent_dirs prepare_topol drop_restraints
+export -f prepare_long_run run_long
 
 # Define the list of directories
-# dirs=( "test" )
-dirs=( "10" "15" "20" "200" "proUnpro" )
+# dirs=( "10" "15" "20" "200" "proUnpro" )
+dirs=( "5" "50" )
+# dirs=( "10" "15" "20" "100" "150" "200" )
 
 case $1 in
 'mk_parents')
@@ -175,6 +269,12 @@ case $1 in
     ;;
 'drop')
     parallel drop_restraints ::: "${dirs[@]}"
+    ;;
+'prepareLong')
+    parallel prepare_long_run ::: "${dirs[@]}"
+    ;;
+'runLong')
+    parallel run_long ::: "${dirs[@]}"
     ;;
 *)
     echo "Invalid argument. Please use 'structure', 'mk_parents',topol, 'index', 'em', 'nvt', 'npt', or 'drop'."
