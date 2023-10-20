@@ -60,6 +60,38 @@ copy_bashes() {
     done
 }
 
+copy_paras() {
+    local source_dir="XXXXXXXXXXX/MyScripts/bash"
+    local destination_dir=`pwd`  # The destination directory will be the first argument
+
+    # Navigate to the source directory
+    cd "$source_dir" || return
+
+    # Pull changes from origin's master branch
+    if ! git pull origin master; then
+        echo "Error: Unable to pull changes from origin's master branch."
+        return 1
+    fi
+    cd $destination_dir
+
+    # List of files to copy
+    files_to_copy=(
+        "parallel_analysing.sh"
+        "parallel_run.sh"
+	    "parallel_update.sh"
+    )
+
+    # Copy each file to the destination directory
+    for file in "${files_to_copy[@]}"; do
+        cp "$source_dir/$file" "$destination_dir"
+        if [ $? -eq 0 ]; then
+            echo "Copied $file from $source_dir"
+        else
+            echo "Error: Failed to copy $file to $destination_dir"
+        fi
+    done
+}
+
 copy_drops() {
     local source_dir="XXXXXXXXXXX/MyScripts/bash"
     local destination_dir=`pwd`  # The destination directory will be the first argument
