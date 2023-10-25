@@ -245,31 +245,62 @@ get_rdf() {
     popd
 }
 
+get_traj(){
+    local dir="$1"Oda
+    local exsitDirs
+    local existing_integer
+    local largest_integer
+    local strucDir
+    local runDir
+    local nptTrr    
+    local nptTpr
+    local nptNdx
+    local outPutOptions
+
+    pushd "$dir" || exit 1
+    runDir="analysis_traj"
+    exsitDirs=$( ls -d */ )
+
+    largest_integer=0
+    # Loop through the directory names
+    for dir_name in "${exsitDirs[@]}"; do
+        if [[ $dir_name =~ ^([0-9]+)_ ]]; then
+            existing_integer="${BASH_REMATCH[1]}"
+            if ((existing_integer > largest_integer)); then
+                largest_integer=$existing_integer
+            fi
+        fi
+    done
+    
+    ((largest_integer++))
+    runDir="${largest_integer}_${runDir}"
+    pushd "$runDir" || exit 1
+
+    strucDir=$(find ../ -type d -name '*afterLong300nsFor100ns' -print -quit)
+    
+    nptTrr="$strucDir/npt.trr"
+    nptTpr="$strucDir/npt.tpr"
+    nptNdx="$strucDir/index.ndx"
+
+    outPutOptions=(
+        "ox"
+        "ov"
+        "of"
+        "ob"
+        "ekt"
+        "ekr"
+        "vd"
+        "av"
+        "af"
+    )
+    
+    for out_put in ${outPutOptions[@]}; do
+        gmx_mpi traj -f "$nptTrr" -s "$nptTpr" -n "$nptNdx" -com yes -pbc yes -nojump yes "$out_put"
+    done
+}
+
 export -f get_density get_tension get_com_plumed unwrap_traj get_frames get_rdf
 
 # dirs=( "5" )
 # dirs=( "5" "15" "20" "100" "200" )
-dirs=( "zero" "5" "10" "15" "20" "50" "100" "150" "200" )
-
-case $1 in
-    'density')
-        parallel get_density ::: "${dirs[@]}"
-    ;;
-    'tension')
-        parallel get_tension ::: "${dirs[@]}"
-    ;;
-    'plumed')
-        parallel get_com_plumed ::: "${dirs[@]}"
-    ;;
-    'unwrap')
-        parallel unwrap_traj ::: "${dirs[@]}"
-    ;;
-    'frames')
-        parallel get_frames ::: "${dirs[@]}"
-    ;;
-    'rdf')
-        parallel get_rdf ::: "${dirs[@]}"
-    ;;
-    *)
-        echo -e "Invalid argument. Please use 'density', 'tension', 'plumed', 'unwrap', 'frames', rdf \n"
-esac
+dirs=( "zero" "5" "10" "15" "20" "50" 
