@@ -258,7 +258,7 @@ get_traj(){
     local outPutOptions
 
     pushd "$dir" || exit 1
-    runDir="analysis_traj"
+    runDir="analysisNpTraj"
     exsitDirs=$( ls -d */ )
 
     largest_integer=0
@@ -295,13 +295,13 @@ get_traj(){
     )
 
     for out_put in ${outPutOptions[@]}; do
-        gmx_mpi traj -f "$nptTrr" \
-                     -s "$nptTpr" \
-                     -n "$nptNdx" \
-                     -com yes \
-                     -pbc yes \
-                     -nojump yes \
-                     "$out_put"
+        echo "11" | gmx_mpi traj -f "$nptTrr" \
+                                 -s "$nptTpr" \
+                                 -n "$nptNdx" \
+                                 -com yes \
+                                 -pbc yes \
+                                 -nojump yes \
+                                 "$out_put"
     done
 }
 
