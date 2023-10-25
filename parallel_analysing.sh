@@ -247,7 +247,7 @@ get_rdf() {
 
 get_traj(){
     local dir="$1"Oda
-    local exsitDirs
+    local existDirs
     local existing_integer
     local largest_integer
     local strucDir
@@ -256,42 +256,49 @@ get_traj(){
     local nptTpr
     local nptNdx
     local outPutOptions
+    local dir_name
 
     pushd "$dir" || exit 1
-    runDir="analysisNpTraj"
-    exsitDirs=$( ls -d */ )
 
-    largest_integer=0
-    # Loop through the directory names
-    for dir_name in "${exsitDirs[@]}"; do
-        if [[ $dir_name =~ ^([0-9]+)_ ]]; then
-            existing_integer="${BASH_REMATCH[1]}"
-            if ((existing_integer > largest_integer)); then
-                largest_integer=$existing_integer
+    runDir=$(find . -maxdepth 1 -type d -name "*analysisNpTraj" -print -quit)
+    if [[ -z "$runDir" ]]; then
+        runDir="analysisNpTraj"
+        existDirs=( */ )
+        largest_integer=0
+        for dir_name in "${existDirs[@]}"; do
+            if [[ "$dir_name" =~ ^([0-9]+)_ ]]; then
+                existing_integer="${BASH_REMATCH[1]}"
+                if ((existing_integer > largest_integer)); then
+                    largest_integer="$existing_integer"
+                fi
             fi
-        fi
-    done
-    
-    ((largest_integer++))
-    runDir="${largest_integer}_${runDir}"
+            echo -e "Exiting loop for dir: $dir_name"
+        done
+
+        ((largest_integer++))
+        runDir="${largest_integer}_${runDir}"
+
+        mkdir "$runDir" || exit 1
+    else
+        echo "traj dir is already exist"
+    fi
     pushd "$runDir" || exit 1
 
     strucDir=$(find ../ -type d -name '*afterLong300nsFor100ns' -print -quit)
-    
     nptTrr="$strucDir/npt.trr"
     nptTpr="$strucDir/npt.tpr"
     nptNdx="$strucDir/index.ndx"
 
     outPutOptions=(
-        "ox"
-        "ov"
-        "of"
-        "ob"
-        "ekt"
-        "ekr"
-        "vd"
-        "av"
-        "af"
+        "ox"    # Coordinate
+        "ov"    # Velocity
+        "of"    # Forces
+        "ob"    # Box
+        "ekt"   # Translational energy
+        "ekr"   # Rotationsl energy
+        "vd"    # veldlist
+        "av"    # all_veloc
+        "af"    # all_forces
     )
 
     for out_put in ${outPutOptions[@]}; do
@@ -301,7 +308,7 @@ get_traj(){
                                  -com yes \
                                  -pbc yes \
                                  -nojump yes \
-                                 "$out_put"
+                                 -"$out_put"
     done
 }
 
