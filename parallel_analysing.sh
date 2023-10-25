@@ -293,14 +293,46 @@ get_traj(){
         "av"
         "af"
     )
-    
+
     for out_put in ${outPutOptions[@]}; do
-        gmx_mpi traj -f "$nptTrr" -s "$nptTpr" -n "$nptNdx" -com yes -pbc yes -nojump yes "$out_put"
+        gmx_mpi traj -f "$nptTrr" \
+                     -s "$nptTpr" \
+                     -n "$nptNdx" \
+                     -com yes \
+                     -pbc yes \
+                     -nojump yes \
+                     "$out_put"
     done
 }
 
-export -f get_density get_tension get_com_plumed unwrap_traj get_frames get_rdf
+export -f get_density get_tension get_com_plumed unwrap_traj get_frames get_rdf get_traj
 
 # dirs=( "5" )
 # dirs=( "5" "15" "20" "100" "200" )
-dirs=( "zero" "5" "10" "15" "20" "50" 
+dirs=( "zero" "5" "10" "15" "20" "50" "100" "150" "200" )
+
+case $1 in
+    'density')
+        parallel get_density ::: "${dirs[@]}"
+    ;;
+    'tension')
+        parallel get_tension ::: "${dirs[@]}"
+    ;;
+    'plumed')
+        parallel get_com_plumed ::: "${dirs[@]}"
+    ;;
+    'unwrap')
+        parallel unwrap_traj ::: "${dirs[@]}"
+    ;;
+    'frames')
+        parallel get_frames ::: "${dirs[@]}"
+    ;;
+    'rdf')
+        parallel get_rdf ::: "${dirs[@]}"
+    ;;
+    'rdf')
+        parallel get_traj ::: "${dirs[@]}"
+    ;;
+    *)
+        echo -e "Invalid argument. Please use 'density', 'tension', 'plumed', 'unwrap', 'frames', 'rdf', 'get_traj' \n"
+esac
