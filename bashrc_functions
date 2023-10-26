@@ -152,11 +152,14 @@ function updateMyScripts() {
 }
 
 function RTAIL() {
+    local name
+    local dir
     local RED='\e[31m'
     local RESET='\e[0m'
     for job in $(squeue -u $(whoami) | grep RUN | awk 'NR>1 {print $1}'); do
+        name=$(scontrol show job $job |  awk 'BEGIN {FS=" "} /JobName=/ {print $2}')
         dir=$(scontrol show job $job | grep -oP 'WorkDir=\K\S+')
-        echo -e "${RED}$job${RESET} -> $dir:"
+        echo -e "${RED}$job, ${name}${RESET} -> $dir:"
         tail -1 $dir/slurm-"$job".out
         echo ""
     done
