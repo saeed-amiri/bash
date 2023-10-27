@@ -4,7 +4,7 @@
 
 get_density(){
     local dir="$1"Oda
-    local pwDir="density"
+    local runDir="density"
     local tmpFile='density.xvg'
     local sourceDir
     local titleLine
@@ -12,16 +12,39 @@ get_density(){
     local title
     
     pushd "$dir" || exit 1
-    mkdir "$pwDir"
-    pushd "$pwDir" || exit 1
 
-    sourceDir=$(find .. -maxdepth 1 -type d -name '*after*Long300ns' -print -quit)
+
+    runDir=$(find . -maxdepth 1 -type d -name "*density" -print -quit)
+    if [[ -z "$runDir" ]]; then
+        runDir="density"
+        existDirs=( */ )
+        largest_integer=0
+        for dir_name in "${existDirs[@]}"; do
+            if [[ "$dir_name" =~ ^([0-9]+)_ ]]; then
+                existing_integer="${BASH_REMATCH[1]}"
+                if ((existing_integer > largest_integer)); then
+                    largest_integer="$existing_integer"
+                fi
+            fi
+            echo -e "Exiting loop for dir: $dir_name"
+        done
+
+        ((largest_integer++))
+        runDir="${largest_integer}_${runDir}"
+
+        mkdir "$runDir" || exit 1
+    else
+        echo "traj dir is already exist"
+    fi
+    pushd "$runDir" || exit 1
+
+    sourceDir=$(find .. -maxdepth 1 -type d -name '*afterLong300nsFor100ns' -print -quit)
     
     if [ -f $tmpFile ]; then
         rm $tmpFile
     fi
     
-    local startFrame=200  # Variable to specify the starting frame
+    local startFrame=0  # Variable to specify the starting frame
     
     # SOL: 2
     # D10: 5
@@ -33,7 +56,7 @@ get_density(){
     # COR_APT: 11
     groupIds=( '2' '5' '6' '7' '8' '9' '10' '11' )
     for group in "${groupIds[@]}"; do
-        echo "$group" | gmx_mpi density -s "$sourceDir"/npt.tpr -f "$sourceDir"/npt.trr \
+        echo "$group" | gmx_mpi density -s "$sourceDir"/npt.tpr -f "$sourceDir"/npt.xtc \
                                     -n "$sourceDir"/index.ndx -b "$startFrame" -o "$tmpFile"
         if [ -f "$tmpFile" ]; then
             titleLine=$(sed -n -e 24p $tmpFile)
