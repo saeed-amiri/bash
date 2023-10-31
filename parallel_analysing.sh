@@ -169,35 +169,45 @@ EOF
 unwrap_traj(){
     local dir="$1"Oda
     local sourceDir
-    local pwDir="com_traj"
+    local runDir
     local dirCount
     pushd $dir || exit 1
 
-    dirCount=$(find . -maxdepth 1 -type d -regex './[0-9].*' | wc -l)
-    local count=1
-    if [[ $dirCount -eq 0 ]]; then
-        pwDir="${count}_${pwDir}"
-    else
-        for dir in */; do
-            if [[ $dir =~ ^[0-9] ]]; then
-                ((count++))
+    runDir=$(find . -maxdepth 1 -type d -name '*com_traj' -print -quit)
+    if [[ -z "$runDir" ]]; then
+        runDir="com_traj"
+        existDirs=( */ )
+        largest_integer=0
+        for dir_name in "${existDirs[@]}"; do
+            if [[ "$dir_name" =~ ^([0-9]+)_ ]]; then
+                existing_integer="${BASH_REMATCH[1]}"
+                if ((existing_integer > largest_integer)); then
+                    largest_integer="$existing_integer"
+                fi
             fi
+            echo -e "Exiting loop for dir: $dir_name"
         done
-        pwDir="${count}_${pwDir}"
+
+        ((largest_integer++))
+        runDir="${largest_integer}_${runDir}"
+
+        mkdir "$runDir" || exit 1
+    else
+        echo "com dir is already exist"
     fi
-    mkdir $pwDir || exit 1
-    pushd $pwDir || exit 1
-    sourceDir=$(find .. -maxdepth 1 -type d -name '*after*UpAveLong300ns' -print -quit)
+    pushd $runDir || exit 1
+    sourceDir=$(find .. -maxdepth 1 -type d -name '*afterLong300nsFor100ns' -print -quit)
     cp "$sourceDir"/topol.top .
     for structre in gro trr; do
         echo 0 | gmx_mpi trjconv -s "$sourceDir"/npt.tpr -f "$sourceDir"/npt."$structre" -o unwrap."$structre" -pbc whole
     done
     popd
+    popd
 }
 
 get_frames() {
     local dir="$1"Oda
-    local pwDir
+    local runDir
     local parentDir
     local jobName="$1"Ana
     local slurmName
@@ -207,10 +217,31 @@ get_frames() {
 
     pushd $dir || exit 1
 
-    pwDir=$(find . -maxdepth 1 -type d -name '*com_traj' -print -quit)
-    pushd "$pwDir" || exit 1
+    runDir=$(find . -maxdepth 1 -type d -name '*com_traj' -print -quit)
+    if [[ -z "$runDir" ]]; then
+        runDir="com_traj"
+        existDirs=( */ )
+        largest_integer=0
+        for dir_name in "${existDirs[@]}"; do
+            if [[ "$dir_name" =~ ^([0-9]+)_ ]]; then
+                existing_integer="${BASH_REMATCH[1]}"
+                if ((existing_integer > largest_integer)); then
+                    largest_integer="$existing_integer"
+                fi
+            fi
+            echo -e "Exiting loop for dir: $dir_name"
+        done
+
+        ((largest_integer++))
+        runDir="${largest_integer}_${runDir}"
+
+        mkdir "$runDir" || exit 1
+    else
+        echo "com dir is already exist"
+    fi
+    pushd "$runDir" || exit 1
     slurmFile=$(find $parentDir -type f -name $slurmName -print -quit)
-    cp "$slurmFile" .
+    cp "$slurmFile" . || exit 1
     sed -i "s/^#SBATCH --job-name.*/#SBATCH --job-name $jobName/" "$slurmName"
     sbatch "$slurmName"
     popd
