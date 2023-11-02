@@ -366,11 +366,26 @@ get_traj(){
     done
 }
 
-export -f get_density get_tension get_com_plumed unwrap_traj get_frames get_rdf get_traj
+get_bootstraps(){
+    local dir="$1"Oda
+    local runDir
+    local pyPath
+    pushd "$dir" || exit 1
 
+    runDir=$(find . -maxdepth 1 -type d -name "*tension" -print -quit)
+    pushd "$runDir" || { echo "Tension directory not found"; exit 1; }
+    
+    pyPath=/scratch/projects/hbp00076/MyScripts/GromacsPanorama/src
+    python "$pyPath/module2_statistics/bootstrap_sampler.py" tension.xvg
+    
+    popd
+}
+
+export -f get_density get_tension get_com_plumed unwrap_traj get_frames get_rdf get_traj get_bootstraps
+
+# dirs=( "zero" "15" "20" )
 # dirs=( "5" )
-# dirs=( "5" "15" "20" "100" "200" )
-dirs=( "zero" "5" "10" "15" "20" "50" "100" "150" "200" )
+dirs=( "5" "10" "15" "20" "50" "100" "150" "200" )
 
 case $1 in
     'density')
@@ -391,9 +406,12 @@ case $1 in
     'rdf')
         parallel get_rdf ::: "${dirs[@]}"
     ;;
-    'rdf')
+    'get_traj')
         parallel get_traj ::: "${dirs[@]}"
     ;;
+    'boots')
+        parallel get_bootstraps ::: "${dirs[@]}"
+    ;;
     *)
-        echo -e "Invalid argument. Please use 'density', 'tension', 'plumed', 'unwrap', 'frames', 'rdf', 'get_traj' \n"
+        echo -e "Invalid argument. Please use 'density', 'tension', 'plumed', 'unwrap', 'frames', 'rdf', 'get_traj', 'boots' \n"
 esac
