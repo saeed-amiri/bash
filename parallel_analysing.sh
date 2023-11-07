@@ -74,7 +74,7 @@ get_tension() {
     local parentDir
     local dir="$1"Oda
     local Oda="$1"
-    local pwDir=""
+    local runDir=""
     local sourceDir
     local tmpFile='tension.xvg'
     local logFile='tension.log'
@@ -87,34 +87,37 @@ get_tension() {
     touch $logFile
     pushd $dir || exit 1
 
-    pwDir=$(find . -maxdepth 1 -type d -name '*tension' -print -quit)
-    if [[ -z "$pwDir" ]]; then
-        pwDir='tension'
-        dirCount=$(find . -maxdepth 1 -type d -regex './[0-9].*' | wc -l)
-        count=1
-        if [[ $dirCount -eq 0 ]]; then
-            pwDir="${count}_${pwDir}"
-        else
-            for i in */; do
-                if [[ $i =~ ^[0-9] ]]; then
-                    ((count++))
+    runDir=$(find . -maxdepth 1 -type d -name '*tension' -print -quit)
+    if [[ -z "$runDir" ]]; then
+        runDir="tension"
+        existDirs=( */ )
+        largest_integer=0
+        for dir_name in "${existDirs[@]}"; do
+            if [[ "$dir_name" =~ ^([0-9]+)_ ]]; then
+                existing_integer="${BASH_REMATCH[1]}"
+                if ((existing_integer > largest_integer)); then
+                    largest_integer="$existing_integer"
                 fi
-            done
-            pwDir="${count}_${pwDir}"
-        fi
-        mkdir "$pwDir" || exit 1
-    else
-        echo "com directory exist"
-    fi
-    pushd $pwDir || exit 1
+            fi
+            echo -e "Exiting loop for dir: $dir_name"
+        done
 
-    sourceDir=$(find .. -maxdepth 1 -type d -name '*after*Long300ns' -print -quit)
+        ((largest_integer++))
+        runDir="${largest_integer}_${runDir}"
+
+        mkdir "$runDir" || exit 1
+    else
+        echo "traj dir is already exist"
+    fi
+    pushd "$runDir" || exit 1
+
+    sourceDir=$(find .. -maxdepth 1 -type d -name '*afterLong300nsFor100ns' -print -quit)
 
     if [[ -f "$parentDir"/"$logFile" ]]; then
         rm "$parentDir"/"$logFile"
     fi
 
-    local startFrame=120000  # Variable to specify the starting frame
+    local startFrame=0  # Variable to specify the starting frame
     gamma=$(echo "43"| gmx_mpi energy -f "$sourceDir"/npt.edr -s "$sourceDir"/npt.tpr -o "$tmpFile" -b "$startFrame" | \
                  grep '#Surf'|awk -F ' ' '{print $2}') 
     echo "$dir $Oda $gamma" >> "$parentDir"/"$logFile"
@@ -196,10 +199,12 @@ unwrap_traj(){
         echo "com dir is already exist"
     fi
     pushd $runDir || exit 1
+    rm *.trr *.gro com_pickle || { echo "gro and/or trr and/or com_pickle do not exist!"; }
+    rm .unwrap*
     sourceDir=$(find .. -maxdepth 1 -type d -name '*afterLong300nsFor100ns' -print -quit)
     cp "$sourceDir"/topol.top .
     for structre in gro trr; do
-        echo 0 | gmx_mpi trjconv -s "$sourceDir"/npt.tpr -f "$sourceDir"/npt."$structre" -o unwrap."$structre" -pbc whole
+        echo 0 | gmx_mpi trjconv -s "$sourceDir"/npt.tpr -f "$sourceDir"/npt."$structre" -o unwrap."$structre" -pbc mol
     done
     popd
     popd
@@ -401,6 +406,9 @@ case $1 in
         parallel unwrap_traj ::: "${dirs[@]}"
     ;;
     'frames')
+        pushd /scratch/projects/hbp00076/MyScripts/GromacsPanorama || exit 1
+            git pull origin main
+        popd || exit 1
         parallel get_frames ::: "${dirs[@]}"
     ;;
     'rdf')
