@@ -434,7 +434,7 @@ np_interface_analysis() {
     cp $slurmFile .
     sed -i "s/^#SBATCH --job-name.*/#SBATCH --job-name $JobName/" "$slurmName"
 
-    pyCommand="python ${pyPath}/module3_analysis_com/trajectory_com_analysis.py ${comDir}/com_pickle" 
+    pyCommand="python ${pyPath}/module3_analysis_aqua/trajectory_com_analysis.py ${comDir}/com_pickle" 
     sed -i "$ a ${pyCommand}" "$slurmName" || { echo "Failed to add command to script."; return 1; }
 
     cat <<EOL >> "$slurmName"
