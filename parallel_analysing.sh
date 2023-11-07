@@ -386,11 +386,78 @@ get_bootstraps(){
     popd
 }
 
+np_interface_analysis() {
+    local dir="$1"Oda
+    local runDir
+    local comDir
+    local coordDir
+    local pyPath="/scratch/projects/hbp00076/MyScripts/GromacsPanorama/src"
+    local figDir="figs"
+    local slurmName="slurm.read_com"
+    local slurmFile
+    local JobName="$1"ComAna
+    local pyCommand
+
+    pushd "$dir" || exit 1
+
+    runDir=$(find . -maxdepth 1 -type d -name "*NpInterfaceAnalysis" -print -quit)
+    if [[ -z "$runDir" ]]; then
+        runDir="NpInterfaceAnalysis"
+        existDirs=( */ )
+        largest_integer=0
+        for dir_name in "${existDirs[@]}"; do
+            if [[ "$dir_name" =~ ^([0-9]+)_ ]]; then
+                existing_integer="${BASH_REMATCH[1]}"
+                if ((existing_integer > largest_integer)); then
+                    largest_integer="$existing_integer"
+                fi
+            fi
+            echo -e "Exiting loop for dir: ${dir_name}"
+        done
+
+        ((largest_integer++))
+        runDir="${largest_integer}_${runDir}"
+
+        mkdir "$runDir" || { echo "Failed to create directory ${runDir}."; return 1; }
+    else
+        echo "${runDir} dir is already exist"
+    fi
+    pushd "$runDir" || exit 1
+    
+    coordDir=$(find .. -maxdepth 1 -type d -name "*analysisNpTraj" -print -quit)
+    cp "${coordDir}/coord.xvg" . || { echo "The coord.xvg does not exist!"; return 1; }
+
+    comDir=$(find .. -maxdepth 1 -type d -name "*com_traj" -print -quit)
+    cp "${comDir}/topol.top" . || { echo "Failed to copy topol file."; return 1; }
+
+    slurmFile=$(find ../.. -maxdepth 1 -type f -name "${slurmName}" -print -quit)
+    cp $slurmFile .
+    sed -i "s/^#SBATCH --job-name.*/#SBATCH --job-name $JobName/" "$slurmName"
+
+    pyCommand="python ${pyPath}/module3_analysis_com/trajectory_com_analysis.py ${comDir}/com_pickle" 
+    sed -i "$ a ${pyCommand}" "$slurmName" || { echo "Failed to add command to script."; return 1; }
+
+    cat <<EOL >> "$slurmName"
+figDir='figs'
+if [[ -d "\$figDir" ]]; then
+    rm -rf "\$figDir"
+fi
+
+mkdir "\$figDir"
+mv ./*.png "\$figDir"/ || { echo "Unable to move the figs to \${figDir}"; return 1; }
+EOL
+    sbatch "$slurmName"
+
+    popd || exit 1
+
+}
+
 export -f get_density get_tension get_com_plumed unwrap_traj get_frames get_rdf get_traj get_bootstraps
+export -f np_interface_analysis
 
 # dirs=( "zero" "15" "20" )
-# dirs=( "5" )
-dirs=( "5" "10" "15" "20" "50" "100" "150" "200" )
+# dirs=( "10" )
+dirs=( "10" "15" "20" "50" "100" "150" "200" )
 
 case $1 in
     'density')
@@ -406,9 +473,7 @@ case $1 in
         parallel unwrap_traj ::: "${dirs[@]}"
     ;;
     'frames')
-        pushd /scratch/projects/hbp00076/MyScripts/GromacsPanorama || exit 1
-            git pull origin main
-        popd || exit 1
+        pull_repository GromacsPanorama || exit 1
         parallel get_frames ::: "${dirs[@]}"
     ;;
     'rdf')
@@ -420,6 +485,11 @@ case $1 in
     'boots')
         parallel get_bootstraps ::: "${dirs[@]}"
     ;;
+    'np_analysis')
+        pull_repository GromacsPanorama || exit 1
+        parallel np_interface_analysis ::: "${dirs[@]}"
+    ;;
     *)
-        echo -e "Invalid argument. Please use 'density', 'tension', 'plumed', 'unwrap', 'frames', 'rdf', 'get_traj', 'boots' \n"
+        echo -e "Invalid argument. Please use 'density', 'tension', 'plumed', 'unwrap', 'frames', 'rdf',\
+                 'get_traj', 'boots' 'np_analysis' \n"
 esac
