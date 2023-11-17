@@ -2,6 +2,13 @@
 
 # To analysing simple things with gromacs itself
 
+pull_repository(){
+    local repo=$1
+    pushd "/scratch/projects/hbp00076/MyScripts/$repo" || exit 1
+        git pull origin main
+    popd || exit 1
+}
+
 get_density(){
     local dir="$1"Oda
     local runDir="density"
@@ -456,8 +463,8 @@ export -f get_density get_tension get_com_plumed unwrap_traj get_frames get_rdf 
 export -f np_interface_analysis
 
 # dirs=( "zero" "15" "20" )
-# dirs=( "10" )
-dirs=( "10" "15" "20" "50" "100" "150" "200" )
+dirs=( "5" )
+# dirs=( "10" "15" "20" "50" "100" "150" "200" )
 
 case $1 in
     'density')
