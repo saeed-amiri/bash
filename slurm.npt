@@ -13,6 +13,8 @@ export SLURM_CPUS_PER_TASK=$THREADS
 export OMP_NUM_THREADS=$THREADS
 export GMX_MAXCONSTRWARN=-1
 
+echo $(date)
+
 module load intel/19.1.3
 module load impi/2019.9
 module load gromacs/2021.2-plumed
