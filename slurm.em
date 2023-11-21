@@ -1,5 +1,5 @@
 #!/bin/bash 
-#SBATCH --job-name NeW@EM
+#SBATCH --job-name 15ODA@EM
 #SBATCH --nodes=4
 #SBATCH --ntasks=384
 #SBATCH --time 12:00:00
@@ -12,8 +12,6 @@ export SLURM_CPU_BIND=none
 export SLURM_CPUS_PER_TASK=$THREADS
 export OMP_NUM_THREADS=$THREADS
 export GMX_MAXCONSTRWARN=-1
-
-echo $(date)
 
 module load intel/19.1.3
 module load impi/2019.9
@@ -29,7 +27,7 @@ STYLE=em
 MDP_FILE="$STYLE.mdp"
 
 # Name of the simulation
-LABEL=
+LABEL=afterUpdate23
 
 # Topo file
 TOPFILE=./topol.top
@@ -55,19 +53,21 @@ if [ ! -f "$STRCTURE" ]; then
 fi
 
 # Naming the dirs, initiate with an integer
-dir_count=$(find . -maxdepth 1 -type d -regex './[0-9].*' | wc -l)
-count=1
-if [[ $dir_count -eq 0 ]]; then
-    DIR="${count}_${DIR}"
-else
-    for dir in */; do
-        if [[ $dir =~ ^[0-9] ]]; then
-            ((count++))
+# Naming the dirs, initiate with an integer
+existDirs=( */ )
+largest_integer=0
+for dir_name in "${existDirs[@]}"; do
+    if [[ "$dir_name" =~ ^([0-9]+)_ ]]; then
+        existing_integer="${BASH_REMATCH[1]}"
+        if ((existing_integer > largest_integer)); then
+            largest_integer="$existing_integer"
         fi
-    done
-    DIR="${count}_${DIR}"
-fi
+    fi
+    echo -e "Exiting loop for dir: ${dir_name}"
+done
 
+((largest_integer++))
+DIR="${largest_integer}_${DIR}"
 cat << EOF
 
  *******************
