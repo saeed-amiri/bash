@@ -6,6 +6,8 @@
 #SBATCH --constraint=turbo_on
 #SBATCH -A hbp00076
 
+echo $(date)
+echo -e "================================================================================\n"
 
 THREADS=2
 export SLURM_CPU_BIND=none
