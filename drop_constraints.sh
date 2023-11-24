@@ -5,12 +5,13 @@
 # Set variables
 REPORT="./RESUBMIT_REPORT"
 JobName="DropCo"
-CHECKFILE="nvt.gro"
-SLURM_FILE="slurm.drop_nvt"
-MDP_FILE="nvt.mdp"
+CHECKFILE="npt.gro"
+SLURM_FILE="slurm.drop_npt"
+MDP_FILE="npt.mdp"
 TOP_FILE="topol.top"
+IN_STRUCTURE="em.gro"
 SLEEPTIME=40m
-SNOOZE=20m
+SNOOZE=10m
 
 # Function to check if a file exists and print a message
 check_file_exists() {
@@ -39,11 +40,10 @@ check_includes() {
 }
 
 # Call the function to check input files
-check_file_exists $TOP_FILE
-check_includes $TOP_FILE
+check_file_exists "$TOP_FILE"
+check_includes "$TOP_FILE"
+check_file_exists "$IN_STRUCTURE"
 
-# Make sure of the job name in slurm
-sed -i "s/^#SBATCH --job-name.*/#SBATCH --job-name $JobName/" $SLURM_FILE
 
 # Function to log messages to the REPORT file
 log_message() {
@@ -93,8 +93,12 @@ check_status() {
 # Initialize constraint
 INITIAL_FORCE=5000
 # Dropping value
-DROP_STEP=2000
+DROP_STEP=1000
 
+# Make sure of the job name in slurm
+sed -i "s/^#SBATCH --job-name.*/#SBATCH --job-name $JobName/" $SLURM_FILE
+# The input structure
+sed -i "s/^STRCTURE=.*/STRCTURE=.\/${IN_STRUCTURE}/" "$SLURM_FILE"
 # Gradually decrease constraints
 while [ "$INITIAL_FORCE" -gt "$DROP_STEP" ]; do
     UPDATED_FORCE=$((INITIAL_FORCE - DROP_STEP))
@@ -107,7 +111,7 @@ while [ "$INITIAL_FORCE" -gt "$DROP_STEP" ]; do
 
     # Submit job and monitor
     # make sure the of the name of the mdp file
-    sed -i "s/^MDP_FILE=.*/MDP_FILE=nvt.mdp/" "$SLURM_FILE"
+    sed -i "s/^MDP_FILE=.*/MDP_FILE=npt.mdp/" "$SLURM_FILE"
     Jobid=$(sbatch --parsable $SLURM_FILE)
     log_message "Submitting job: $Jobid , Constraint Force: $UPDATED_FORCE"
     
@@ -119,8 +123,8 @@ while [ "$INITIAL_FORCE" -gt "$DROP_STEP" ]; do
     # Check the status of the job
     check_status "$Jobid"
     
-    # Rename nvt.gro and update SLURM script
-    UPDATE_GRO=nvt_"$UPDATED_FORCE".gro
+    # Rename npt.gro and update SLURM script
+    UPDATE_GRO=npt_"$UPDATED_FORCE".gro
 
     if [ -f "$CHECKFILE" ]; then
        mv "$CHECKFILE" "$UPDATE_GRO"
@@ -139,8 +143,8 @@ while [ "$INITIAL_FORCE" -gt "$DROP_STEP" ]; do
     log_message "Starting new job with initital structure: $UPDATE_GRO"
 done
 
-if [ -f nvt_$DROP_STEP.gro ]; then
-    sed -i 's/^MDP_FILE=.*/MDP_FILE=nvt_noConstraints.mdp \\/' $SLURM_FILE
+if [ -f npt_$DROP_STEP.gro ]; then
+    sed -i 's/^MDP_FILE=.*/MDP_FILE=npt_noConstraints.mdp \\/' $SLURM_FILE
     Jobid=$(sbatch --parsable $SLURM_FILE)
     log_message "Submitting final job with id: $Jobid, and sleep 12 hours"
     sleep 12h
