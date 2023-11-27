@@ -11,7 +11,7 @@ pull_repository(){
 
 get_density(){
     local dir="$1"Oda
-    local runDir="density"
+    local runDir="$DENSITY"
     local tmpFile='density.xvg'
     local sourceDir
     local titleLine
@@ -21,9 +21,9 @@ get_density(){
     pushd "$dir" || exit 1
 
 
-    runDir=$(find . -maxdepth 1 -type d -name "*density" -print -quit)
+    runDir=$(find . -maxdepth 1 -type d -name "*${runDir}" -print -quit)
     if [[ -z "$runDir" ]]; then
-        runDir="density"
+        runDir="$DENSITY"
         existDirs=( */ )
         largest_integer=0
         for dir_name in "${existDirs[@]}"; do
@@ -45,7 +45,7 @@ get_density(){
     fi
     pushd "$runDir" || exit 1
 
-    sourceDir=$(find .. -maxdepth 1 -type d -name '*afterLong300nsFor100ns' -print -quit)
+    sourceDir=$(find .. -maxdepth 1 -type d -name "*${SOURCEDIR}" -print -quit)
     
     if [ -f $tmpFile ]; then
         rm $tmpFile
@@ -64,7 +64,7 @@ get_density(){
     groupIds=( '2' '5' '6' '7' '8' '9' '10' '11' )
     for group in "${groupIds[@]}"; do
         echo "$group" | gmx_mpi density -s "$sourceDir"/npt.tpr -f "$sourceDir"/npt.xtc \
-                                    -n "$sourceDir"/index.ndx -b "$startFrame" -o "$tmpFile"
+                                        -n "$sourceDir"/index.ndx -b "$startFrame" -o "$tmpFile"
         if [ -f "$tmpFile" ]; then
             titleLine=$(sed -n -e 24p $tmpFile)
             titleTmp=$(echo $titleLine | cut -d'"' -f 2)
@@ -94,9 +94,9 @@ get_tension() {
     touch $logFile
     pushd $dir || exit 1
 
-    runDir=$(find . -maxdepth 1 -type d -name '*tension' -print -quit)
+    runDir=$(find . -maxdepth 1 -type d -name "*${TENSION}" -print -quit)
     if [[ -z "$runDir" ]]; then
-        runDir="tension"
+        runDir="${TENSION}"
         existDirs=( */ )
         largest_integer=0
         for dir_name in "${existDirs[@]}"; do
@@ -118,7 +118,7 @@ get_tension() {
     fi
     pushd "$runDir" || exit 1
 
-    sourceDir=$(find .. -maxdepth 1 -type d -name '*afterLong300nsFor100ns' -print -quit)
+    sourceDir=$(find .. -maxdepth 1 -type d -name "*${SOURCEDIR}" -print -quit)
 
     if [[ -f "$parentDir"/"$logFile" ]]; then
         rm "$parentDir"/"$logFile"
@@ -141,9 +141,9 @@ get_com_plumed(){
     pushd $dir || exit 1
     dirCount=$(find . -maxdepth 1 -type d -regex './[0-9].*' | wc -l)
 
-    pwDir=$(find . -maxdepth 1 -type d -name '*plumed_com' -print -quit)
+    pwDir=$(find . -maxdepth 1 -type d -name "*${PLUMEDCOM}" -print -quit)
     if [[ -z "$pwDir" ]]; then
-        pwDir='plumed_com'
+        pwDir="${PLUMEDCOM}"
         dirCount=$(find . -maxdepth 1 -type d -regex './[0-9].*' | wc -l)
         count=1
         if [[ $dirCount -eq 0 ]]; then
@@ -162,7 +162,7 @@ get_com_plumed(){
     fi
     pushd $pwDir || exit 1
 
-    sourceDir=$(find .. -maxdepth 1 -type d -name '*after*UpAveLong300ns' -print -quit)
+    sourceDir=$(find .. -maxdepth 1 -type d -name "*${SOURCEDIR}" -print -quit)
     cp "$sourceDir"/index.ndx .
     cat > "$plumedInput" << EOF
 # Define the group from the index file
@@ -183,9 +183,9 @@ unwrap_traj(){
     local dirCount
     pushd $dir || exit 1
 
-    runDir=$(find . -maxdepth 1 -type d -name '*com_traj' -print -quit)
+    runDir=$(find . -maxdepth 1 -type d -name "*${COMTRAJ}" -print -quit)
     if [[ -z "$runDir" ]]; then
-        runDir="com_traj"
+        runDir="${COMTRAJ}"
         existDirs=( */ )
         largest_integer=0
         for dir_name in "${existDirs[@]}"; do
@@ -208,7 +208,7 @@ unwrap_traj(){
     pushd $runDir || exit 1
     rm *.trr *.gro com_pickle || { echo "gro and/or trr and/or com_pickle do not exist!"; }
     rm .unwrap*
-    sourceDir=$(find .. -maxdepth 1 -type d -name '*afterLong300nsFor100ns' -print -quit)
+    sourceDir=$(find .. -maxdepth 1 -type d -name *${SOURCEDIR} -print -quit)
     cp "$sourceDir"/topol.top .
     for structre in gro trr; do
         echo 0 | gmx_mpi trjconv -s "$sourceDir"/npt.tpr -f "$sourceDir"/npt."$structre" -o unwrap."$structre" -pbc mol
@@ -229,9 +229,9 @@ get_frames() {
 
     pushd $dir || exit 1
 
-    runDir=$(find . -maxdepth 1 -type d -name '*com_traj' -print -quit)
+    runDir=$(find . -maxdepth 1 -type d -name "*${CONTRAJ}" -print -quit)
     if [[ -z "$runDir" ]]; then
-        runDir="com_traj"
+        runDir="${CONTRAJ}"
         existDirs=( */ )
         largest_integer=0
         for dir_name in "${existDirs[@]}"; do
@@ -266,9 +266,9 @@ get_rdf() {
     local dirCount
     pushd $dir || exit 1
 
-    pwDir=$(find . -maxdepth 1 -type d -name '*rdf' -print -quit)
+    pwDir=$(find . -maxdepth 1 -type d -name "*${RDF}" -print -quit)
     if [[ -z "$pwDir" ]]; then
-        pwDir='rdf'
+        pwDir="${RDF}"
         dirCount=$(find . -maxdepth 1 -type d -regex './[0-9].*' | wc -l)
         local count=1
         if [[ $dirCount -eq 0 ]]; then
@@ -287,7 +287,7 @@ get_rdf() {
     fi
     cd "$pwDir"
 
-    sourceDir=$(find .. -maxdepth 1 -type d -name '*after*UpAveLong300ns' -print -quit)
+    sourceDir=$(find .. -maxdepth 1 -type d -name "*${SOURCEDIR}" -print -quit)
  
     local referencePosition="whole_res_com"
     local refResisue="APT"
@@ -326,9 +326,9 @@ get_traj(){
 
     pushd "$dir" || exit 1
 
-    runDir=$(find . -maxdepth 1 -type d -name "*analysisNpTraj" -print -quit)
+    runDir=$(find . -maxdepth 1 -type d -name "*${ANALYZENPTRAJ}" -print -quit)
     if [[ -z "$runDir" ]]; then
-        runDir="analysisNpTraj"
+        runDir="${ANALYZENPTRAJ}"
         existDirs=( */ )
         largest_integer=0
         for dir_name in "${existDirs[@]}"; do
@@ -350,7 +350,7 @@ get_traj(){
     fi
     pushd "$runDir" || exit 1
 
-    strucDir=$(find ../ -type d -name '*afterLong300nsFor100ns' -print -quit)
+    strucDir=$(find ../ -type d -name "*${SOURCEDIR}" -print -quit)
     nptTrr="$strucDir/npt.trr"
     nptTpr="$strucDir/npt.tpr"
     nptNdx="$strucDir/index.ndx"
@@ -384,7 +384,7 @@ get_bootstraps(){
     local pyPath
     pushd "$dir" || exit 1
 
-    runDir=$(find . -maxdepth 1 -type d -name "*tension" -print -quit)
+    runDir=$(find . -maxdepth 1 -type d -name "*${TENSION}" -print -quit)
     pushd "$runDir" || { echo "Tension directory not found"; exit 1; }
     
     pyPath=/scratch/projects/hbp00076/MyScripts/GromacsPanorama/src
@@ -407,9 +407,9 @@ np_interface_analysis() {
 
     pushd "$dir" || exit 1
 
-    runDir=$(find . -maxdepth 1 -type d -name "*NpInterfaceAnalysis" -print -quit)
+    runDir=$(find . -maxdepth 1 -type d -name "*${ANALYZENPTRAJ}" -print -quit)
     if [[ -z "$runDir" ]]; then
-        runDir="NpInterfaceAnalysis"
+        runDir="${ANALYZENPTRAJ}"
         existDirs=( */ )
         largest_integer=0
         for dir_name in "${existDirs[@]}"; do
@@ -431,10 +431,10 @@ np_interface_analysis() {
     fi
     pushd "$runDir" || exit 1
     
-    coordDir=$(find .. -maxdepth 1 -type d -name "*analysisNpTraj" -print -quit)
+    coordDir=$(find .. -maxdepth 1 -type d -name "*${ANALYZENPTRAJ}" -print -quit)
     cp "${coordDir}/coord.xvg" . || { echo "The coord.xvg does not exist!"; return 1; }
 
-    comDir=$(find .. -maxdepth 1 -type d -name "*com_traj" -print -quit)
+    comDir=$(find .. -maxdepth 1 -type d -name "*${COMTRAJ}" -print -quit)
     cp "${comDir}/topol.top" . || { echo "Failed to copy topol file."; return 1; }
 
     slurmFile=$(find ../.. -maxdepth 1 -type f -name "${slurmName}" -print -quit)
@@ -459,11 +459,24 @@ EOL
 
 }
 
+# Dirs names:
+SOURCEDIR="36_npt_after31Temp315K"
+
+ANALYZENPTRAJ="analysisNpTraj"
+COMTRAJ="com_trajTemp315"
+DENSITY="density"
+TENSION="tension"
+PLUMEDCOM="plumed_com"
+RDF="rdf"
+
+
+
+export SOURCEDIR DENSITY COMTRAJ TENSION ANALYZENPTRAJ RDF PLUMEDCOM
 export -f get_density get_tension get_com_plumed unwrap_traj get_frames get_rdf get_traj get_bootstraps
 export -f np_interface_analysis
 
 # dirs=( "zero" "15" "20" )
-dirs=( "5" )
+dirs=( "15" )
 # dirs=( "10" "15" "20" "50" "100" "150" "200" )
 
 case $1 in
