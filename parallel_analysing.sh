@@ -229,9 +229,9 @@ get_frames() {
 
     pushd $dir || exit 1
 
-    runDir=$(find . -maxdepth 1 -type d -name "*${CONTRAJ}" -print -quit)
+    runDir=$(find . -maxdepth 1 -type d -name "*${COMTRAJ}" -print -quit)
     if [[ -z "$runDir" ]]; then
-        runDir="${CONTRAJ}"
+        runDir="${COMTRAJ}"
         existDirs=( */ )
         largest_integer=0
         for dir_name in "${existDirs[@]}"; do
@@ -407,9 +407,9 @@ np_interface_analysis() {
 
     pushd "$dir" || exit 1
 
-    runDir=$(find . -maxdepth 1 -type d -name "*${ANALYZENPTRAJ}" -print -quit)
+    runDir=$(find . -maxdepth 1 -type d -name "*${NPINTERFACEANALYZE}" -print -quit)
     if [[ -z "$runDir" ]]; then
-        runDir="${ANALYZENPTRAJ}"
+        runDir="${NPINTERFACEANALYZE}"
         existDirs=( */ )
         largest_integer=0
         for dir_name in "${existDirs[@]}"; do
@@ -460,10 +460,11 @@ EOL
 }
 
 # Dirs names:
-SOURCEDIR="36_npt_after31Temp315K"
+SOURCEDIR="npt_dropRestrainsAfterEm16"
 
 ANALYZENPTRAJ="analysisNpTraj"
-COMTRAJ="com_trajTemp315"
+NPINTERFACEANALYZE="NpInterfaceAnalysis"
+COMTRAJ="com_traj"
 DENSITY="density"
 TENSION="tension"
 PLUMEDCOM="plumed_com"
@@ -471,12 +472,12 @@ RDF="rdf"
 
 
 
-export SOURCEDIR DENSITY COMTRAJ TENSION ANALYZENPTRAJ RDF PLUMEDCOM
+export SOURCEDIR DENSITY COMTRAJ TENSION ANALYZENPTRAJ RDF PLUMEDCOM NPINTERFACEANALYZE
 export -f get_density get_tension get_com_plumed unwrap_traj get_frames get_rdf get_traj get_bootstraps
 export -f np_interface_analysis
 
 # dirs=( "zero" "15" "20" )
-dirs=( "15" )
+dirs=( "200" )
 # dirs=( "10" "15" "20" "50" "100" "150" "200" )
 
 case $1 in
