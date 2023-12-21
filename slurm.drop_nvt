@@ -1,7 +1,7 @@
 #!/bin/bash 
-#SBATCH --job-name Drop
-#SBATCH --nodes=4
-#SBATCH --ntasks=384
+#SBATCH --job-name 5Drop
+#SBATCH --nodes=12
+#SBATCH --ntasks=1152
 #SBATCH --time 12:00:00
 #SBATCH --constraint=turbo_on
 #SBATCH -A hbp00076
@@ -20,16 +20,16 @@ module load impi/2019.9
 module load gromacs/2021.2-plumed
 
 # input gro file for starting point
-STRCTURE=./system.gro
+STRUCTURE=./npt_1000.gro
 
 # Style of run
-STYLE=nvt
+STYLE=npt
 
 # Name of the simulation
 LABEL=
 
 # mdp file
-MDP_FILE="$STYLE.mdp"
+MDP_FILE=npt_noConstraints.mdp \
 
 # Topo file
 TOPFILE=./topol.top
@@ -45,7 +45,7 @@ if [ -f $TPRFILE ]; then
     rm $TPRFILE
 fi
 # check if the structure file exists
-if [ ! -f "$STRCTURE" ]; then
+if [ ! -f "$STRUCTURE" ]; then
     echo "Error: the structure file does not exist!"
     exit 1
 fi
@@ -66,8 +66,8 @@ cat "$MDP_FILE"
 echo -e "\n*******************\n"
 
 gmx_mpi grompp -f $MDP_FILE \
-               -c $STRCTURE \
-               -r $STRCTURE \
+               -c $STRUCTURE \
+               -r $STRUCTURE \
                -p $TOPFILE \
                -n index.ndx \
                -o $STYLE.tpr \

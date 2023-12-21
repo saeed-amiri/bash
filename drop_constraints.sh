@@ -4,14 +4,17 @@
 
 # Set variables
 REPORT="./RESUBMIT_REPORT"
-JobName="DropCo"
+JobName="5Drop"
 CHECKFILE="npt.gro"
 SLURM_FILE="slurm.drop_npt"
 MDP_FILE="npt.mdp"
 TOP_FILE="topol.top"
-IN_STRUCTURE="em.gro"
+INSTRUCTURE="em.gro"
+INDEX="index.ndx"
+
 SLEEPTIME=40m
 SNOOZE=10m
+
 
 # Function to check if a file exists and print a message
 check_file_exists() {
@@ -41,9 +44,12 @@ check_includes() {
 
 # Call the function to check input files
 check_file_exists "$TOP_FILE"
+check_file_exists "$INSTRUCTURE"
+check_file_exists "$INDEX"
 check_includes "$TOP_FILE"
-check_file_exists "$IN_STRUCTURE"
 
+# Make sure of the job name in slurm
+sed -i "s/^#SBATCH --job-name.*/#SBATCH --job-name $JobName/" $SLURM_FILE
 
 # Function to log messages to the REPORT file
 log_message() {
@@ -95,10 +101,7 @@ INITIAL_FORCE=5000
 # Dropping value
 DROP_STEP=1000
 
-# Make sure of the job name in slurm
-sed -i "s/^#SBATCH --job-name.*/#SBATCH --job-name $JobName/" $SLURM_FILE
-# The input structure
-sed -i "s/^STRCTURE=.*/STRCTURE=.\/${IN_STRUCTURE}/" "$SLURM_FILE"
+sed -i "s/^STRUCTURE=.*/STRUCTURE=.\/em.gro/" "$SLURM_FILE"
 # Gradually decrease constraints
 while [ "$INITIAL_FORCE" -gt "$DROP_STEP" ]; do
     UPDATED_FORCE=$((INITIAL_FORCE - DROP_STEP))
@@ -139,7 +142,7 @@ while [ "$INITIAL_FORCE" -gt "$DROP_STEP" ]; do
     fi
 
     # Update structure path in SLURM script
-    sed -i "s/^STRCTURE=.*/STRCTURE=.\/$UPDATE_GRO/" "$SLURM_FILE"
+    sed -i "s/^STRUCTURE=.*/STRUCTURE=.\/$UPDATE_GRO/" "$SLURM_FILE"
     log_message "Starting new job with initital structure: $UPDATE_GRO"
 done
 
