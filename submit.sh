@@ -4,7 +4,7 @@
 
 # Initialize variables
 CHECKFILE="$1"
-JobName="50VLg"
+JobName="510Lng"
 REPORT="./RESUBMIT_REPORT"
 TOPFILE="./topol.top"
 JOBIDLIST="./JOBID_LIST"
@@ -104,7 +104,10 @@ check_Jobid(){
 }
 
 # Call the function to check input files
-check_includes $TOPFILE
+check_file_exists "slurm.continue"
+check_file_exists "slurm.long_run"
+check_file_exists "$TOPFILE"
+check_includes "$TOPFILE"
 
 # Make sure of the job name in slurm
 for slurm_file in slurm.long_run slurm.continue; do
