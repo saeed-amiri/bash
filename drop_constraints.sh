@@ -4,12 +4,12 @@
 
 # Set variables
 REPORT="./RESUBMIT_REPORT"
-JobName="5Drop"
+JobName="100Drop"
 CHECKFILE="npt.gro"
 SLURM_FILE="slurm.drop_npt"
 MDP_FILE="npt.mdp"
 TOP_FILE="topol.top"
-INSTRUCTURE="em.gro"
+INSTRUCTURE="nvt.gro"
 INDEX="index.ndx"
 
 SLEEPTIME=40m
@@ -101,7 +101,7 @@ INITIAL_FORCE=5000
 # Dropping value
 DROP_STEP=1000
 
-sed -i "s/^STRUCTURE=.*/STRUCTURE=.\/em.gro/" "$SLURM_FILE"
+sed -i "s/^STRUCTURE=.*/STRUCTURE=.\/${INSTRUCTURE}/" "$SLURM_FILE"
 # Gradually decrease constraints
 while [ "$INITIAL_FORCE" -gt "$DROP_STEP" ]; do
     UPDATED_FORCE=$((INITIAL_FORCE - DROP_STEP))
