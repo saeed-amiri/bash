@@ -82,5 +82,6 @@ if [ -f $TPRFILE ]; then
                          -c $STYLE \
                          -cpo $STYLE \
                          -ntomp $THREADS \
+                         -dlb yes \
                          -pin on
 fi
