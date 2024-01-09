@@ -210,9 +210,16 @@ unwrap_traj(){
     rm .unwrap*
     sourceDir=$(find .. -maxdepth 1 -type d -name *${SOURCEDIR} -print -quit)
     cp "$sourceDir"/topol.top .
+    
     for structre in gro trr; do
-        echo 0 | gmx_mpi trjconv -s "$sourceDir"/npt.tpr -f "$sourceDir"/npt."$structre" -o unwrap."$structre" -pbc mol
+        echo 0 | gmx_mpi trjconv -s "$sourceDir"/npt.tpr -f "$sourceDir"/npt."$structre" \
+                                  -o nojump_unwrap."$structre" -pbc nojump
     done
+    for structre in gro trr; do
+        echo 0 | gmx_mpi trjconv -s "$sourceDir"/npt.tpr -f nojump_unwrap."$structre" \
+                                 -o whole_nojump_unwrap."$structre" -pbc whole
+    done
+
     popd
     popd
 }
