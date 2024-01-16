@@ -466,12 +466,71 @@ EOL
 
 }
 
-# Dirs names:
-SOURCEDIR="npt_dropRestrainsAfterEm16"
+trim_order_parameter() {
+    local Oda="$1"
+    local dir="$1"Oda
+    local runDir
+    local meanOrderParameter
+    local stdOrderParameter
+    local OutLog='order_parameter.log'
+     local existLog
+    local inLog='brushes.log.'
+    local averageOdaNr
+    parentDir=$(pwd)
+    pushd "$dir" || exit 1
+    runDir=$(find . -maxdepth 1 -type d -name "*${NPINTERFACEANALYZE}" -print -quit)
+    pushd "$runDir" || exit 1
+    
+    existLog=$( ls "$inLog"* 2> /dev/null )
+    
+    local largest_integer=0
+    local selected_log=""
 
-ANALYZENPTRAJ="analysisNpTraj"
-NPINTERFACEANALYZE="NpInterfaceAnalysis"
-COMTRAJ="com_traj"
+    for log in $existLog; do
+        if [[ "$log" =~ ${inLog}([0-9]+)$ ]]; then
+            existing_integer="${BASH_REMATCH[1]}"
+            if ((existing_integer > largest_integer)); then
+                largest_integer="$existing_integer"
+                selected_log="$log"
+            fi
+        fi
+    done
+
+    if [ -z "$selected_log" ]; then
+        echo "No log file found."
+        return 1
+    fi
+    meanOrderParameter=$(grep "Mean of order parameter:" "$log" | awk -F '`' '{print $2}')
+    stdOrderParameter=$(grep "Std of order parameter:" "$log" | awk -F '`' '{print $2}')
+    local xvgFile="order_parameter.xvg"
+
+    # Calculate the average using awk
+    averageOdaNr=$(awk '
+        /^#/ {next;}  # Skip lines starting with #
+        /@/ {next;}   # Skip lines starting with @
+        {
+            total += $2;  # Sum up the values in the second column
+            count++;      # Count the number of entries
+        }
+        END {
+            if (count > 0)
+                print total / count;  # Print the average
+            else
+                print "No data";      # Print message if no data
+        }
+    ' "$xvgFile")
+    echo "$dir $Oda $averageOdaNr $meanOrderParameter $stdOrderParameter" >> "$parentDir"/"$OutLog"
+
+    popd || exit 1
+    popd || exit 1
+}
+
+# Dirs names:
+SOURCEDIR="For100ns"
+
+ANALYZENPTRAJ="analysisNpTrajAfter100ns"
+NPINTERFACEANALYZE="NpInterfaceAnalysisAfter100ns"
+COMTRAJ="com_trajAfter100ns"
 DENSITY="density"
 TENSION="tension"
 PLUMEDCOM="plumed_com"
@@ -481,11 +540,11 @@ RDF="rdf"
 
 export SOURCEDIR DENSITY COMTRAJ TENSION ANALYZENPTRAJ RDF PLUMEDCOM NPINTERFACEANALYZE
 export -f get_density get_tension get_com_plumed unwrap_traj get_frames get_rdf get_traj get_bootstraps
-export -f np_interface_analysis
+export -f np_interface_analysis trim_order_parameter
 
-# dirs=( "zero" "15" "20" )
-dirs=( "200" )
-# dirs=( "10" "15" "20" "50" "100" "150" "200" )
+# dirs=( "1020" "800" "510" )
+# dirs=( "510"  )
+dirs=( "5" "10" "15" "20" "50" "100" "150" "200" "300" "510" "800" "1020" )
 
 case $1 in
     'density')
@@ -517,7 +576,13 @@ case $1 in
         pull_repository GromacsPanorama || exit 1
         parallel np_interface_analysis ::: "${dirs[@]}"
     ;;
+    'trim_orderp')
+        if [[ -f 'order_parameter.log' ]]; then
+            rm 'order_parameter.log'
+        fi
+        parallel trim_order_parameter ::: "${dirs[@]}"
+    ;;
     *)
         echo -e "Invalid argument. Please use 'density', 'tension', 'plumed', 'unwrap', 'frames', 'rdf',\
-                 'get_traj', 'boots' 'np_analysis' \n"
+                 'get_traj', 'boots' 'np_analysis'  'get_bootstraps'\n"
 esac
