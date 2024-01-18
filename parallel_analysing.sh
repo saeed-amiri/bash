@@ -466,7 +466,7 @@ EOL
 
 }
 
-trim_order_parameter() {
+trim_order_parameter_log() {
     local Oda="$1"
     local dir="$1"Oda
     local runDir
@@ -540,7 +540,7 @@ RDF="rdf"
 
 export SOURCEDIR DENSITY COMTRAJ TENSION ANALYZENPTRAJ RDF PLUMEDCOM NPINTERFACEANALYZE
 export -f get_density get_tension get_com_plumed unwrap_traj get_frames get_rdf get_traj get_bootstraps
-export -f np_interface_analysis trim_order_parameter
+export -f np_interface_analysis trim_order_parameter_log
 
 # dirs=( "1020" "800" "510" )
 # dirs=( "510"  )
@@ -580,7 +580,7 @@ case $1 in
         if [[ -f 'order_parameter.log' ]]; then
             rm 'order_parameter.log'
         fi
-        parallel trim_order_parameter ::: "${dirs[@]}"
+        parallel trim_order_parameter_log ::: "${dirs[@]}"
     ;;
     *)
         echo -e "Invalid argument. Please use 'density', 'tension', 'plumed', 'unwrap', 'frames', 'rdf',\
