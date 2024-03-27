@@ -58,12 +58,15 @@ MaxLoop=6
 COUNTER=0
 
 # Input files
-InitStructure="em.gro"
+InitStructure="nvt.gro"
+EmStructure="em.gro"
 UpdateFile="update_param"
 TopFile="topol.top"
 IndexFile="index.ndx"
-MdpFile="em.mdp"
+EmMdpFile="em.mdp"
 EmSlurmFile="slurm.em"
+NvtMdpFile="nvt.mdp"
+NvtSlurmFile="slurm.nvt"
 UpdateSlurmFile="slurm.update"
 ItpFile="APT_COR.itp"
 
@@ -182,23 +185,6 @@ submit_update_job() {
     fi
 }
 
-process_files() {
-    # Backup the files and rename the updated files
-    local Counter="$1"
-    local CLA="$2"
-    # backup files
-    mv $InitStructure $InitStructure.bak_$Counter
-    mv $TopFile $TopFile.bak_$Counter
-    mv $IndexFile $IndexFile.bak_$Counter
-    mv $ItpFile $ItpFile.bak_$Counter
-    # rename the updated files
-    mv $UpdatePassGro $InitStructure
-    mv $UpdatePassTop $TopFile
-    mv $UpdatePassItp $ItpFile
-    # Update CLA number in topol file
-    sed -i "/^CLA/c\CLA    $CLA" $TopFile
-}
-
 submit_em_job() {
     # Submit the em job and get the Jobid
     local Counter="$1"
@@ -219,33 +205,71 @@ submit_em_job() {
     fi
 }
 
+submit_nvt_job() {
+    # Submit the nvt job and get the Jobid
+    local Counter="$1"
+    local Jobid=$(sbatch --parsable "$NvtSlurmFile")
+    echo -e "Nvt $Counter\t$Jobid" >> $JobIdList
+    log_message "Nvt job: $Jobid , Counter nr.: $Counter"
+    log_message "Sleep for $SLEEPTIME before checking the status..."
+    sleep "$SLEEPTIME"
+    # Check the state after waking up
+    check_Jobid "$Jobid"
+    # Check the status of the job
+    check_status "$Jobid"
+    
+    #  Check if the update job is completed
+    if [ ! -f $InitStructure ]; then
+        log_message "The file $InitStructure does not exist. Nvt Failed! EXIT!"
+        exit 1
+    fi
+}
+
 check_file_exists "$InitStructure"
 check_file_exists "$UpdateFile"
 check_file_exists "$TopFile"
 check_file_exists "$IndexFile"
-check_file_exists "$MdpFile"
+check_file_exists "$EmMdpFile"
 check_file_exists "$EmSlurmFile"
 check_file_exists "$UpdateSlurmFile"
 check_file_exists "$ItpFile"
+check_file_exists "$NvtMdpFile"
+check_file_exists "$NvtSlurmFile"
+
 check_includes "$TopFile"
 
 while [ $COUNTER -lt $MaxLoop ]; do
+
+    INITIALIONS=$((INITIALIONS+IncrementIons))
     # Submit the update job and get the Jobid
     submit_update_job $COUNTER
+    # backup files and rename the updated files
+    log_message "Preparation for the em job..."
+    mv $IndexFile $IndexFile.bak_$COUNTER
+    mv $ItpFile $ItpFile.bak_$COUNTER
+    mv $TopFile $TopFile.bak_$Counter
 
-    # process the files
-    INITIALIONS=$((INITIALIONS+IncrementIons))
-    process_files $COUNTER $INITIALIONS
-    echo "Preparation for the em job..."
-    echo "Make index file..."
+    mv $UpdatePassItp $ItpFile
+    mv $UpdatePassTop $TopFile
+    sed -i "/^CLA/c\CLA    $INITIALIONS" $TopFile
+    
+    log_message "Make index file..."
     echo "q" | gmx_mpi make_ndx -f $InitStructure -o $IndexFile
-    # Submit the em job and get the Jobid
+    mv $EmStructure $EmStructure.bak_$COUNTER
     submit_em_job $COUNTER
-    echo "Em job $COUNTER is done!"
-    echo " "
+    log_message "Em job $COUNTER is done!"
+    log_message " "
+
+    # Submit the nvt job and get the Jobid
+    mv $InitStructure $InitStructure.bak_$COUNTER
+    submit_nvt_job $COUNTER
+    log_message "Nvt job $COUNTER is done!"
+    log_message " "
+
+    rm *debug*
+    rm step*
+    rm \#*
+
     ((COUNTER++))
 done
 
-rm *.debug
-rm step*
-rm \#*
