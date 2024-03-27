@@ -51,8 +51,8 @@ INITIALIONS="$1"
 JobName="5OdaUpEm"
 Report="./RESUBMIT_REPORT"
 JobIdList="./JOBID_LIST"
-SLEEPTIME=10m
-SNOOZE=5m
+SLEEPTIME=8m
+SNOOZE=2m
 IncrementIons=5
 MaxLoop=6
 COUNTER=0
@@ -190,6 +190,7 @@ process_files() {
     mv $InitStructure $InitStructure.bak_$Counter
     mv $TopFile $TopFile.bak_$Counter
     mv $IndexFile $IndexFile.bak_$Counter
+    mv $ItpFile $ItpFile.bak_$Counter
     # rename the updated files
     mv $UpdatePassGro $InitStructure
     mv $UpdatePassTop $TopFile
@@ -235,9 +236,16 @@ while [ $COUNTER -lt $MaxLoop ]; do
     # process the files
     INITIALIONS=$((INITIALIONS+IncrementIons))
     process_files $COUNTER $INITIALIONS
+    echo "Preparation for the em job..."
+    echo "Make index file..."
     echo "q" | gmx_mpi make_ndx -f $InitStructure -o $IndexFile
     # Submit the em job and get the Jobid
     submit_em_job $COUNTER
-
+    echo "Em job $COUNTER is done!"
+    echo " "
     ((COUNTER++))
 done
+
+rm *.debug
+rm step*
+rm \#*
