@@ -13,9 +13,9 @@ THREADS=2
 export SLURM_CPU_BIND=none
 export SLURM_CPUS_PER_TASK=$THREADS
 export OMP_NUM_THREADS=$THREADS
-export GMX_MAXCONSTRWARN=-1
+export GMX_MAXCONSTRWARN=1000
 
-module gcc/13.2.0  openmpi/4.1.6
+module load gcc/13.2.0  openmpi/4.1.6
 module load gromacs/2023.3
 
 # input gro file for starting point
@@ -70,7 +70,7 @@ gmx_mpi grompp -f $MDP_FILE \
                -p $TOPFILE \
                -n index.ndx \
                -o $STYLE.tpr \
-               -maxwarn -1
+               -maxwarn 1000
 
 if [ -f $TPRFILE ]; then
     srun --cpus-per-task=$SLURM_CPUS_PER_TASK \
