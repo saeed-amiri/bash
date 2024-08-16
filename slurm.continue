@@ -13,7 +13,7 @@ THREADS=2
 export SLURM_CPU_BIND=none
 export SLURM_CPUS_PER_TASK=$THREADS
 export OMP_NUM_THREADS=$THREADS
-export GMX_MAXCONSTRWARN=-1
+export GMX_MAXCONSTRWARN=1000
 
 module load gcc/13.2.0 openmpi/4.1.6
 module load gromacs/2023.3
