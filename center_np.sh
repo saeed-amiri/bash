@@ -46,6 +46,8 @@ for dirId in "${DIRECTORY_IDS[@]}"; do
     
     # Navigate into the directory
     pushd "$dirNams" >> $LOG
+    runDir=$(find . -maxdepth 1 -type d -name "*npt*For100ns" -print -quit)
+    pushd $runDir
     
     # Check if necessary files exist
     if [[ ! -f "$GRO_IN" || ! -f "npt.tpr" || ! -f "index.ndx" ]]; then
@@ -100,6 +102,8 @@ for dirId in "${DIRECTORY_IDS[@]}"; do
     
     # Navigate back to the main directory
     popd >> $LOG
+    popd >> $LOG
 done
 
 echo "All specified directories have been processed."
+
