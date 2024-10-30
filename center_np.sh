@@ -3,12 +3,14 @@
 # Description:
 # This script automates the two-step GROMACS trjconv process to center the NP
 # and wrap all atoms within the simulation box across multiple directories.
-
 # Exit immediately if a command exits with a non-zero status
 set -e
 
 # Log
 LOG="center_np.log"
+
+# Load GROMACS
+GROMACS
 
 # Define input and output filenames for .gro files
 GRO_IN="npt.gro"
@@ -26,7 +28,7 @@ GROUP_CENTER=11  # Replace with your actual group number for COR_APT
 GROUP_WRAP=0     # System group number
 
 # List of directory IDs to process
-DIRECTORY_IDS=(10 15 20 30 40)
+DIRECTORY_IDS=(10 20 30 40)
 echo "Processing directories: ${DIRECTORY_IDS[@]}" > $LOG
 
 # Loop through each directory ID
