@@ -16,12 +16,14 @@ GROMACS
 GRO_IN="npt.gro"
 GRO_TEMP="np_centered_temp.gro"
 GRO_CENTERD="np_centered.gro"
+GRO_CENTERD_WHOLE="np_centered_whole.gro"
 
 
 # Define input and output filenames for .trr files
 TRR_IN="npt.trr"
 TRR_TEMP="np_centered_temp.trr"
 TRR_CENTERD="np_centered.trr"
+TRR_CENTERD_WHOLE="np_centered_whole.trr"
 
 # Define the group numbers
 GROUP_CENTER=11  # Replace with your actual group number for COR_APT
@@ -67,9 +69,13 @@ for dirId in "${DIRECTORY_IDS[@]}"; do
     # ========================
     echo "Step 2: Wrapping all atoms within the box..."
     echo "$GROUP_WRAP" | gmx_mpi trjconv -f "$GRO_TEMP" -s npt.tpr -n index.ndx -o "$GRO_CENTERD" -pbc atom
-    
+
+    # step 2.1: Make broken molecules whole
+    echo "$GROUP_WRAP" | gmx_mpi trjconv -f "$GRO_CENTERD" -s npt.tpr -n index.ndx -o "$GRO_CENTERD_WHOLE" -pbc whole
+
     # Remove the temporary centered .gro file
     rm "$GRO_TEMP"
+    rm "$GRO_CENTERD"
     
     # ========================
     # Step 3: Process Trajectory
@@ -83,9 +89,13 @@ for dirId in "${DIRECTORY_IDS[@]}"; do
         
         # Step 3.2: Wrap all atoms in trajectory
         echo "$GROUP_WRAP" | gmx_mpi trjconv -f "$TRR_TEMP" -s npt.tpr -n index.ndx -o "$TRR_CENTERD" -pbc atom
-        
+
+        # step 3.3: Make broken molecules whole
+        echo "$GROUP_WRAP" | gmx_mpi trjconv -f "$TRR_CENTERD" -s npt.tpr -n index.ndx -o "$TRR_CENTERD_Whole" -pbc whole
+
         # Remove the temporary centered .trr file
         rm "$TRR_TEMP"
+        rm "$TRR_CENTERD"
         
         echo "Trajectory processing complete. Output saved as $TRR_CENTERD."
     else
@@ -94,9 +104,9 @@ for dirId in "${DIRECTORY_IDS[@]}"; do
     
     # Confirmation message
     echo "Finished processing $dirNams. Final files:"
-    echo " - Centered .gro: $GRO_CENTERD"
-    if [[ -f "$TRR_CENTERD" ]]; then
-        echo " - Centered .trr: $TRR_CENTERD"
+    echo " - Centered whole .gro: $GRO_CENTERD_WHOLE"
+    if [[ -f "$TRR_CENTERD_WHOLE" ]]; then
+        echo " - Centered whole .trr: $TRR_CENTERD_WHOLE"
     fi
     echo "----------------------------------------"
     
@@ -106,4 +116,3 @@ for dirId in "${DIRECTORY_IDS[@]}"; do
 done
 
 echo "All specified directories have been processed."
-
