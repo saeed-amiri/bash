@@ -91,7 +91,7 @@ for dirId in "${DIRECTORY_IDS[@]}"; do
         echo "$GROUP_WRAP" | gmx_mpi trjconv -f "$TRR_TEMP" -s npt.tpr -n index.ndx -o "$TRR_CENTERD" -pbc atom
 
         # step 3.3: Make broken molecules whole
-        echo "$GROUP_WRAP" | gmx_mpi trjconv -f "$TRR_CENTERD" -s npt.tpr -n index.ndx -o "$TRR_CENTERD_Whole" -pbc whole
+        echo "$GROUP_WRAP" | gmx_mpi trjconv -f "$TRR_CENTERD" -s npt.tpr -n index.ndx -o "$TRR_CENTERD_WHOLE" -pbc whole
 
         # Remove the temporary centered .trr file
         rm "$TRR_TEMP"
