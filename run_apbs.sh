@@ -108,21 +108,26 @@ for dirId in "${DIRECTORY_IDS[@]}"; do
         # Define the path to the PQR file
         PQR_FILE="$pqr_file"
 
+        # Define the path to the output file
+        OUTPUT_FILE="${PQR_FILE%.pqr}.dx"
+
         # Create a temporary input file to avoid modifying the original apbs.in
         TEMP_IN_FILE="apbs_temp.in"
         cp "$IN_FILE" "$TEMP_IN_FILE"
+        if [[ -f $OUTPUT_FILE ]]; then
+            log_message "Output file $OUTPUT_FILE already exists. Skipping..."
+            continue
+        fi
 
         # Modify the temporary input file
         sed -i "2d" "$TEMP_IN_FILE"
         sed -i "2i\mol pqr $PQR_FILE" "$TEMP_IN_FILE"
         log_message "Modified $TEMP_IN_FILE with $PQR_FILE"
 
-        # Define the path to the output file
-        OUTPUT_FILE="${PQR_FILE%.pqr}.dx"
-
         # Run APBS
         log_message "Running APBS for $PQR_FILE..."
-        apbs "$TEMP_IN_FILE" >> "$LOG" 2>&1
+        apbs "$TEMP_IN_FILE" >> "$LOG" 2>&1 || \
+        { log_message "APBS run failed for $PQR_FILE. Skipping..."; continue; }
 
         log_message "*****************************************************************"
         log_message "The potential file $OUTPUT_FILE has been generated."
