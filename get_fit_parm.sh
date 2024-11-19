@@ -53,24 +53,28 @@ for dirId in "${DIRECTORY_IDS[@]}"; do
         echo "# Current directory: $PWD"
         echo "# Fitted Parameters from log: $logFile."
         echo "@   title \"Fitted parameters\""
-        echo "@   xaxis label \"None\""
+        echo "@   xaxis label \"Index\""
         echo "@   yaxis label \"Varies\""
         echo "@TYPE xy"
         echo "@ view 0.15, 0.15, 0.75, 0.85"
-        echo "@legend on"
+        echo "@ legend on"
         echo "@ legend box on"
         echo "@ legend loctype view"
         echo "@ legend 0.78, 0.8"
         echo "@ legend length 2"
-        echo "@ s0 legend \"c\""
-        echo "@ s1 legend \"b\""
-        echo "@ s2 legend \"g\""
-        echo "@ s3 legend \"d\""
-        echo "@ s4 legend \"wsse\""
+        echo "@ s0 legend \"Index\""
+        echo "@ s1 legend \"c\""
+        echo "@ s2 legend \"b\""
+        echo "@ s3 legend \"g\""
+        echo "@ s4 legend \"d\""
+        echo "@ s5 legend \"wSSE\""
     } > "$OUTPUT"
 
     # Extract data using awk and append to the output file
     awk '
+    BEGIN {
+        idx = 0
+    }
     {
         if (/^\s*The wSSE/) {
             if (match($0, /`([^`]*)`/, m)) {
@@ -97,7 +101,8 @@ for dirId in "${DIRECTORY_IDS[@]}"; do
     }
 
     function output_data() {
-        print data["c"], data["b"], data["g"], data["d"], wSSE
+        idx++
+        print idx, data["c"], data["b"], data["g"], data["d"], wSSE
         delete data
         wSSE = ""
         have_constants = 0
