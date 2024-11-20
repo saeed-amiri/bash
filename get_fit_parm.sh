@@ -62,12 +62,16 @@ for dirId in "${DIRECTORY_IDS[@]}"; do
         echo "@ legend loctype view"
         echo "@ legend 0.78, 0.8"
         echo "@ legend length 2"
-        echo "@ s0 legend \"Index\""
-        echo "@ s1 legend \"c\""
-        echo "@ s2 legend \"b\""
-        echo "@ s3 legend \"g\""
-        echo "@ s4 legend \"d\""
-        echo "@ s5 legend \"wSSE\""
+        echo "@ s0 legend \"c\""
+        echo "@ s1 legend \"b\""
+        echo "@ s2 legend \"g\""
+        echo "@ s3 legend \"d\""
+        echo "@ s4 legend \"WSSE\""
+        echo "@ s5 legend \"DOF\""
+        echo "@ s6 legend \"p-value\""
+        echo "@ s7 legend \"R_squared\""
+        echo "@ s8 legend \"RMSE\""
+        echo "@ s9 legend \"MAE\""
     } > "$OUTPUT"
 
     # Extract data using awk and append to the output file
@@ -76,25 +80,41 @@ for dirId in "${DIRECTORY_IDS[@]}"; do
         idx = 0
     }
     {
-        if (/^\s*The wSSE/) {
-            if (match($0, /`([^`]*)`/, m)) {
-                wSSE = m[1]
-                if (have_constants) {
-                    output_data()
+        if (/Message from FitStatistics:/) {
+            have_stats = 1
+            # Collect the following lines
+            while ((getline line) > 0) {
+                if (line ~ /^\s*$/ || line ~ /^INFO:/) break
+                if (match(line, /^\s*WSSE:\s*(.*)$/, m)) {
+                    wSSE = m[1]
+                } else if (match(line, /^\s*Degrees of Freedom:\s*(.*)$/, m)) {
+                    dof = m[1]
+                } else if (match(line, /^\s*Fit Probability \(p-value\):\s*(.*)$/, m)) {
+                    p_value = m[1]
+                } else if (match(line, /^\s*R-squared:\s*(.*)$/, m)) {
+                    r_squared = m[1]
+                } else if (match(line, /^\s*RMSE:\s*(.*)$/, m)) {
+                    rmse = m[1]
+                } else if (match(line, /^\s*MAE:\s*(.*)$/, m)) {
+                    mae = m[1]
                 }
             }
+            if (have_constants) {
+                output_data()
+            }
         } else if (/fitted constants:/) {
-            data_count = 0
             have_constants = 1
+            data_count = 0
+            # Collect the constants
             while ((getline line) > 0) {
-                if (line ~ /^\s*$/) break
+                if (line ~ /^\s*$/ || line ~ /^INFO:/) break
                 if (match(line, /^\s*(c|b|g|d)\s+([^\s]+)/, m)) {
                     data[m[1]] = m[2]
                     data_count++
                     if (data_count == 4) break
                 }
             }
-            if (wSSE != "") {
+            if (have_stats) {
                 output_data()
             }
         }
@@ -102,9 +122,15 @@ for dirId in "${DIRECTORY_IDS[@]}"; do
 
     function output_data() {
         idx++
-        print idx, data["c"], data["b"], data["g"], data["d"], wSSE
+        print idx, data["c"], data["b"], data["g"], data["d"], wSSE, dof, p_value, r_squared, rmse, mae
         delete data
         wSSE = ""
+        dof = ""
+        p_value = ""
+        r_squared = ""
+        rmse = ""
+        mae = ""
+        have_stats = 0
         have_constants = 0
     }
     ' "$logFile" >> "$OUTPUT"
