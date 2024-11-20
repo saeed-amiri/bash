@@ -66,12 +66,13 @@ for dirId in "${DIRECTORY_IDS[@]}"; do
         echo "@ s1 legend \"b\""
         echo "@ s2 legend \"g\""
         echo "@ s3 legend \"d\""
-        echo "@ s4 legend \"WSSE\""
-        echo "@ s5 legend \"DOF\""
-        echo "@ s6 legend \"p-value\""
-        echo "@ s7 legend \"R_squared\""
-        echo "@ s8 legend \"RMSE\""
-        echo "@ s9 legend \"MAE\""
+        echo "@ s4 legend \"r_half_max\""
+        echo "@ s5 legend \"WSSE\""
+        echo "@ s6 legend \"DOF\""
+        echo "@ s7 legend \"p_value\""
+        echo "@ s8 legend \"R_squared\""
+        echo "@ s9 legend \"RMSE\""
+        echo "@ s10 legend \"MAE\""
     } > "$OUTPUT"
 
     # Extract data using awk and append to the output file
@@ -108,10 +109,10 @@ for dirId in "${DIRECTORY_IDS[@]}"; do
             # Collect the constants
             while ((getline line) > 0) {
                 if (line ~ /^\s*$/ || line ~ /^INFO:/) break
-                if (match(line, /^\s*(c|b|g|d)\s+([^\s]+)/, m)) {
+                if (match(line, /^\s*(c|b|g|d|r_half_max)\s+([^\s]+)/, m)) {
                     data[m[1]] = m[2]
                     data_count++
-                    if (data_count == 4) break
+                    if (data_count == 5) break
                 }
             }
             if (have_stats) {
@@ -122,7 +123,7 @@ for dirId in "${DIRECTORY_IDS[@]}"; do
 
     function output_data() {
         idx++
-        print idx, data["c"], data["b"], data["g"], data["d"], wSSE, dof, p_value, r_squared, rmse, mae
+        print idx, data["c"], data["b"], data["g"], data["d"], data["r_half_max"], wSSE, dof, p_value, r_squared, rmse, mae
         delete data
         wSSE = ""
         dof = ""
